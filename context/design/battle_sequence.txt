@@ -1,0 +1,52 @@
+title ThorShowdown Battle Flow (A1: native client + view-only WebView)
+
+participant BottomScreen
+participant GameViewModel
+participant Repository
+participant SessionManager
+participant ShowdownDataSource
+participant "Showdown Server" as Server
+participant "TopScreen (WebView)" as WebView
+
+note over ShowdownDataSource,Server: App start: open WebSocket and log in
+ShowdownDataSource->Server: connect WebSocket
+Server-->ShowdownDataSource: |challstr|
+ShowdownDataSource->Server: POST /api/login (name, pass, challstr)
+Server-->ShowdownDataSource: assertion
+ShowdownDataSource->Server: |/trn username,0,assertion
+Server-->ShowdownDataSource: |updateuser|username|1|...
+
+BottomScreen->GameViewModel: onAction(FindBattle)
+GameViewModel->Repository: startSearch(format)
+Repository->ShowdownDataSource: send("|/utm null") then send("|/search format")
+ShowdownDataSource->Server: |/search format
+note over Server: matchmaking (async, can take minutes)
+Server-->ShowdownDataSource: |init|battle (roomId)
+ShowdownDataSource-->Repository: messages flow
+Repository->SessionManager: createSession(roomId)
+SessionManager-->GameViewModel: currentRoomId
+GameViewModel-->WebView: show room (roomId)
+WebView->Server: own connection: open battle room (view only)
+
+loop each turn
+Server-->ShowdownDataSource: |request| {active, moves, switches}
+ShowdownDataSource-->Repository: messages flow
+Repository->SessionManager: update(roomId, request)
+SessionManager-->GameViewModel: battleState
+GameViewModel-->BottomScreen: bottomState (available moves)
+BottomScreen->GameViewModel: onAction(ChooseMove(1))
+GameViewModel->Repository: chooseMove(roomId, 1)
+Repository->ShowdownDataSource: send("roomId|/choose move 1|rqid")
+ShowdownDataSource->Server: roomId|/choose move 1|rqid
+note over Server: waits for opponent, then runs the turn
+Server-->ShowdownDataSource: turn events (|move|, |-damage|, |turn|)
+ShowdownDataSource-->Repository: messages flow
+Repository->SessionManager: update(roomId, events)
+Server-->WebView: same turn events (animates)
+end
+
+Server-->ShowdownDataSource: |win| username
+ShowdownDataSource-->Repository: messages flow
+Repository->SessionManager: endSession(roomId)
+SessionManager-->GameViewModel: currentRoomId = null
+GameViewModel-->WebView: return to idle view

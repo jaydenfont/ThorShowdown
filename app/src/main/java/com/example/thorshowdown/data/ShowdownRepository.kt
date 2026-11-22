@@ -5,25 +5,35 @@ import com.example.thorshowdown.data.local.SavedLogin
 import com.example.thorshowdown.showdown.LoginFailure
 import com.example.thorshowdown.showdown.LoginResult
 import com.example.thorshowdown.showdown.ShowdownClient
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import java.io.IOException
 import java.util.logging.Logger
 
-/** Placeholder for parsed battle state. */
-data class BattleState(
-    val log: List<String> = emptyList(),
-)
-
-/** App-scoped single source of truth. Combines the Showdown client and local data. */
+/**
+ * App-scoped single source of truth. Combines the Showdown client and local data.
+ * Collects the client's events in [scope] from construction, so none are missed before `connect()`.
+ */
 class ShowdownRepository(
     private val client: ShowdownClient,
     private val local: LocalDataSource,
+    scope: CoroutineScope,
 ) {
-    private val _battleState = MutableStateFlow(BattleState())
-    val battleState: StateFlow<BattleState> = _battleState.asStateFlow()
+    private val sessionManager = SessionManager(client)
+
+    /** Every battle the user is in, and which one is shown. */
+    val sessions: StateFlow<SessionsState> = sessionManager.state
+
+    init {
+        scope.launch(start = CoroutineStart.UNDISPATCHED) {
+            client.events.collect(sessionManager::handle)
+        }
+    }
 
     private val _loginState = MutableStateFlow<LoginState>(LoginState.Loading)
     val loginState: StateFlow<LoginState> = _loginState.asStateFlow()
@@ -94,6 +104,27 @@ class ShowdownRepository(
         local.saveLogin(login)
         _loginState.value = LoginState.LoggedIn(displayName)
     }
+
+    /** Uses move [slot] (1-based) in battle [roomId] if a choice is awaited. */
+    suspend fun chooseMove(
+        roomId: String,
+        slot: Int,
+        terastallize: Boolean,
+    ) = sessionManager.chooseMove(roomId, slot, terastallize)
+
+    /** Switches to party [slot] (1-based) in battle [roomId] if a choice is awaited. */
+    suspend fun switchTo(
+        roomId: String,
+        slot: Int,
+    ) = sessionManager.switchTo(roomId, slot)
+
+    suspend fun forfeit(roomId: String) = sessionManager.forfeit(roomId)
+
+    /** Leaves battle [roomId], forfeiting it first if it isn't over. */
+    suspend fun leave(roomId: String) = sessionManager.leave(roomId)
+
+    /** Shows battle [roomId]; doesn't leave or forfeit any other. */
+    fun selectRoom(roomId: String) = sessionManager.selectRoom(roomId)
 
     /** Searches the ladder for [formatId] without a team (random formats). */
     suspend fun startSearch(formatId: String) {

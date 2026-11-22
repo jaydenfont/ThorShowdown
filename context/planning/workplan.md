@@ -25,7 +25,7 @@ a WebView, and survive a dropped connection.
 | Status | Issue | Depends on | Notes |
 |---|---|---|---|
 | [x] | [#5 Implement Login](https://github.com/jaydenfont/ThorShowdown/issues/5) | #1 | Native login + saved credentials (Keystore-encrypted). Design: [login.md](../design/login.md). WebView login moved to #4 (hand over the `sid` cookie). |
-| [ ] | [#6 Implement Showdown Session Manager](https://github.com/jaydenfont/ThorShowdown/issues/6) | #1 | One session per room ID. See open items below. |
+| [x] | [#6 Implement Showdown Session Manager](https://github.com/jaydenfont/ThorShowdown/issues/6) | #1 | One session per room ID; room commands, leave (forfeits if unfinished), room switching. Design: [session_manager.md](../design/session_manager.md). |
 | [ ] | [#10 Implement start of battle flow](https://github.com/jaydenfont/ThorShowdown/issues/10) | #1, #5, #6 | `\|/utm null` → `\|/search gen9randombattle` → wait for `\|init\|battle`; support cancel. Issue has no description yet. |
 | [ ] | [#7 Bottom Screen Battle Functionality](https://github.com/jaydenfont/ThorShowdown/issues/7) | #6 | Functional first (moves, Tera, switch, forfeit, log). DS styling after the loop works. |
 | [ ] | [#4 WebView viewer for top screen](https://github.com/jaydenfont/ThorShowdown/issues/4) (**full**) | #5, #6, spike | Follows the session's current room ID. |
@@ -59,14 +59,10 @@ a WebView, and survive a dropped connection.
 ```
 
 ## Open items to resolve in the issues
-- **#6 vs architecture:** #6 says the Session Manager sends commands to the App
-  Client; `design/architecture.md` has the Repository doing it. Pick one and update the other.
-- **#6 point 3 ("managing the state of the WebView"):** keep it to room ID and status,
-  not the WebView object, consistent with "does not directly own the UI".
 - **#4 wording:** the WebView does receive battle updates over its own connection;
   the rule is that the app never sends commands through it and it never makes choices.
 - **#7 team preview / gimmicks:** not needed if P0 is gen9randombattle only (Tera is
   the only gimmick). Confirm P0 format.
-- **End of battle** (`|win|` / `|tie|`, result screen, return to menu) has no issue;
-  fold into #6/#7/#8 or add one.
+- **End of battle:** #6 keeps finished sessions with their result until the player
+  leaves; the result screen and "leave" button belong to #7, return to menu to #8.
 - **#10, #11** have no descriptions yet.

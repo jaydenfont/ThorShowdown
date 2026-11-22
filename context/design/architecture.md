@@ -4,6 +4,7 @@ A Pokémon Showdown client for the AYN Thor (dual-screen Android handheld).
 Status: high-level design plus stub scaffolding in `app/`. Component designs:
 - [showdown_client.md](showdown_client.md): the `:showdown-client` protocol library (#1).
 - [login.md](login.md): login and saved credentials (#5).
+- [session_manager.md](session_manager.md): battle sessions and room commands (#6).
 
 ## Key decision: native client + view-only WebView (option A1)
 
@@ -88,7 +89,7 @@ sequenceDiagram
     Note over S: matchmaking (async)
     S-->>C: >roomId |init|battle
     C-->>R: RoomInit(roomId)
-    R->>SM: createSession(roomId)
+    R->>SM: handle(RoomInit): new session, now current
     SM-->>VM: currentRoomId
     VM-->>W: show room (roomId)
     W->>S: own connection: open battle room (view only)
@@ -96,25 +97,34 @@ sequenceDiagram
     loop each turn
         S-->>C: |request| {active, moves, switches, rqid}
         C-->>R: Request(roomId, ...)
-        R->>SM: update(roomId, request)
+        R->>SM: handle(Request)
         SM-->>VM: battleState
         VM-->>B: bottomState (available moves)
         B->>VM: onAction(ChooseMove(1))
         VM->>R: chooseMove(roomId, 1)
-        R->>C: choose(roomId, Move(1), rqid)
+        R->>SM: chooseMove(roomId, 1)
+        SM->>C: choose(roomId, Move(1), rqid)
         C->>S: roomId|/choose move 1|rqid
         Note over S: waits for opponent, runs the turn
         S-->>C: turn events (|move|, |-damage|, |turn|)
         C-->>R: events
-        R->>SM: update(roomId, events)
+        R->>SM: handle(events)
         S-->>W: same turn events (animates)
     end
 
     S-->>C: |win| username
     C-->>R: Win(roomId, username)
-    R->>SM: endSession(roomId)
-    SM-->>VM: currentRoomId = null
-    VM-->>W: return to idle view
+    R->>SM: handle(Win): result set, session kept
+    SM-->>VM: battleState (result)
+    B->>VM: onAction(LeaveRoom)
+    VM->>R: leave(roomId)
+    R->>SM: leave(roomId)
+    SM->>C: leave(roomId) (forfeits first if unfinished)
+    S-->>C: |deinit|
+    C-->>R: RoomDeinit(roomId)
+    R->>SM: handle(RoomDeinit): session removed
+    SM-->>VM: currentRoomId = next session or null
+    VM-->>W: show that room, or the idle view
 ```
 
 ## Layers
@@ -161,16 +171,21 @@ sequenceDiagram
   `loginState`. Connects (idempotently) at the start of each login. See [login.md](login.md).
 - Exposes `StateFlow`s; offers suspend functions for commands
   (`startSearch`, `chooseMove`, `switchTo`, `forfeit`).
-- Whether commands go Repository → ShowdownClient directly or via the
-  SessionManager is decided in #6.
+- Sends global commands (login, `useTeam`, `search`) to the ShowdownClient itself;
+  room commands (`choose`, `forfeit`, `leave`) go through the SessionManager (#6).
+- Collects `client.events` from `init`, subscribed before any `connect()`.
 
 ### SessionManager (owned by Repository)
 - Holds one `BattleSession` per active room ID (Showdown allows several at once).
 - Each session tracks: latest `|request|` (active Pokémon, moves, switches, rqid),
   turn number, whether we're waiting on the opponent, and the result.
-- Exposes `currentRoomId` and per-session `BattleState` as `StateFlow`s.
-- Creates sessions on `RoomInit(battle)`, updates on `Request` and turn events,
-  ends them on `Win` / `Tie`.
+- Exposes one `StateFlow<SessionsState>`: the sessions plus `currentRoomId`.
+- Creates sessions on `RoomInit(battle)` (the new one becomes current), updates them on
+  `Request`, `Turn`, `|error|` and `Win` / `Tie` (the result is kept for display), and
+  removes them only on `|deinit|`.
+- Sends room commands, filling in the latest `rqid`. `leave` forfeits an unfinished
+  battle first; `selectRoom` switches rooms without leaving.
+- Holds room IDs and state only, never the WebView. Details: [session_manager.md](session_manager.md).
 
 ### ShowdownClient (`:showdown-client` module)
 - Standalone pure-Kotlin JVM library; no Android or app dependencies.
@@ -267,7 +282,6 @@ fun onAction(action: UserAction) {
 ## Open questions
 - WebView login: does setting the native `sid` cookie via `CookieManager` log the
   WebView in? Test in the #4 spike.
-- Commands: Repository → ShowdownClient directly, or via the SessionManager (#6)?
 - Gamepad mapping: which Thor buttons map to moves/switches/confirm?
 - Reconnect strategy: how to resume an in-progress battle after a dropped connection
   or process death (both native and WebView).

@@ -2,7 +2,8 @@
 
 ## pokemon-slowdown test data
 
-- File: `showdown-client/src/test/resources/battles/gen9-singles.txt`
+- Files: `showdown-client/src/test/resources/battles/gen9-singles.txt`,
+  `app/src/test/resources/battles/gen9-singles.txt` (identical copies)
 - Source: https://github.com/unnipv/pokemon-slowdown (`testdata/battles/gen9-singles.txt`)
 - License: MIT
 

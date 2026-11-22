@@ -23,7 +23,7 @@ ShowdownClient->Server: |/search format
 note over Server: matchmaking (async, can take minutes)
 Server-->ShowdownClient: |init|battle (roomId)
 ShowdownClient-->Repository: messages flow
-Repository->SessionManager: createSession(roomId)
+Repository->SessionManager: handle(RoomInit): new session, now current
 SessionManager-->GameViewModel: currentRoomId
 GameViewModel-->WebView: show room (roomId)
 WebView->Server: own connection: open battle room (view only)
@@ -31,22 +31,31 @@ WebView->Server: own connection: open battle room (view only)
 loop each turn
 Server-->ShowdownClient: |request| {active, moves, switches}
 ShowdownClient-->Repository: messages flow
-Repository->SessionManager: update(roomId, request)
+Repository->SessionManager: handle(Request)
 SessionManager-->GameViewModel: battleState
 GameViewModel-->BottomScreen: bottomState (available moves)
 BottomScreen->GameViewModel: onAction(ChooseMove(1))
 GameViewModel->Repository: chooseMove(roomId, 1)
-Repository->ShowdownClient: send("roomId|/choose move 1|rqid")
+Repository->SessionManager: chooseMove(roomId, 1)
+SessionManager->ShowdownClient: send("roomId|/choose move 1|rqid")
 ShowdownClient->Server: roomId|/choose move 1|rqid
 note over Server: waits for opponent, then runs the turn
 Server-->ShowdownClient: turn events (|move|, |-damage|, |turn|)
 ShowdownClient-->Repository: messages flow
-Repository->SessionManager: update(roomId, events)
+Repository->SessionManager: handle(events)
 Server-->WebView: same turn events (animates)
 end
 
 Server-->ShowdownClient: |win| username
 ShowdownClient-->Repository: messages flow
-Repository->SessionManager: endSession(roomId)
-SessionManager-->GameViewModel: currentRoomId = null
-GameViewModel-->WebView: return to idle view
+Repository->SessionManager: handle(Win): result set, session kept
+SessionManager-->GameViewModel: battleState (result)
+BottomScreen->GameViewModel: onAction(LeaveRoom)
+GameViewModel->Repository: leave(roomId)
+Repository->SessionManager: leave(roomId)
+SessionManager->ShowdownClient: send("roomId|/leave") (forfeits first if unfinished)
+Server-->ShowdownClient: |deinit|
+ShowdownClient-->Repository: messages flow
+Repository->SessionManager: handle(RoomDeinit): session removed
+SessionManager-->GameViewModel: currentRoomId = next session or null
+GameViewModel-->WebView: show that room, or the idle view

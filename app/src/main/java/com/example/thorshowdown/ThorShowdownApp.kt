@@ -30,6 +30,6 @@ class ThorShowdownApp : Application() {
         val config = ShowdownConfig()
         val client = DefaultShowdownClient(config, OkHttpTransport(config), OkHttpLoginApi(config), applicationScope)
         val local = LocalDataSource(KeystoreCredentialStore(credentialsDataStore))
-        ShowdownRepository(client, local)
+        ShowdownRepository(client, local, applicationScope)
     }
 }

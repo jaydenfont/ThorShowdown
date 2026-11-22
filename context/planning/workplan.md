@@ -16,7 +16,7 @@ a WebView, and survive a dropped connection.
 
 | Status | Issue | Depends on | Notes |
 |---|---|---|---|
-| [ ] | [#1 Implement Showdown App Client](https://github.com/jaydenfont/ThorShowdown/issues/1) | none | Critical path. Pure-Kotlin module, unit tested without an emulator. Protocol details in `research/showdown_api_notes.md`. |
+| [x] | [#1 Implement Showdown App Client](https://github.com/jaydenfont/ThorShowdown/issues/1) | none | Critical path. Pure-Kotlin module, unit tested without an emulator. Protocol details in `research/showdown_api_notes.md`. |
 | [ ] | [#4 WebView viewer for top screen](https://github.com/jaydenfont/ThorShowdown/issues/4) (**spike only**) | none | Run alongside #1. Answer: can the WebView log in as the user, and can injected CSS hide Showdown's controls while keeping stat tooltips? |
 | [ ] | [#11 Error Handling and Logging](https://github.com/jaydenfont/ThorShowdown/issues/11) | none | Start the logging part early so #1 onward can use it. Server errors arrive as `\|pm\|~\|` and `\|popup\|`. Issue has no description yet. |
 

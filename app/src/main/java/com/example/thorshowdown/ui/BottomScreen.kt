@@ -8,7 +8,10 @@ import androidx.compose.ui.Modifier
 
 /** Display 1 (touch): moves, switches, chat. */
 @Composable
-fun BottomScreen(state: BottomUiState, onAction: (UserAction) -> Unit) {
+fun BottomScreen(
+    state: BottomUiState,
+    onAction: (UserAction) -> Unit,
+) {
     Surface(modifier = Modifier.fillMaxSize()) {
         Text(state.message)
     }

@@ -19,7 +19,6 @@ import com.example.thorshowdown.ui.TopScreen
 import com.example.thorshowdown.ui.theme.ThorShowdownTheme
 
 class MainActivity : ComponentActivity() {
-
     private val viewModel: GameViewModel by viewModels { GameViewModel.Factory }
     private var bottomPresentation: Presentation? = null
 
@@ -42,27 +41,31 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun showBottomScreen() {
-        val display = getSystemService(DisplayManager::class.java)
-            .displays.firstOrNull { it.displayId != Display.DEFAULT_DISPLAY } ?: return
+        val display =
+            getSystemService(DisplayManager::class.java)
+                .displays
+                .firstOrNull { it.displayId != Display.DEFAULT_DISPLAY } ?: return
 
-        val composeView = ComposeView(this).apply {
-            setContent {
-                ThorShowdownTheme {
-                    val state by viewModel.bottomState.collectAsState()
-                    BottomScreen(state, viewModel::onAction)
+        val composeView =
+            ComposeView(this).apply {
+                setContent {
+                    ThorShowdownTheme {
+                        val state by viewModel.bottomState.collectAsState()
+                        BottomScreen(state, viewModel::onAction)
+                    }
                 }
             }
-        }
 
-        bottomPresentation = Presentation(this, display).apply {
-            setContentView(composeView)
-            // Compose needs these owners, which a Presentation window doesn't provide.
-            window?.decorView?.let {
-                it.setViewTreeLifecycleOwner(this@MainActivity)
-                it.setViewTreeViewModelStoreOwner(this@MainActivity)
-                it.setViewTreeSavedStateRegistryOwner(this@MainActivity)
+        bottomPresentation =
+            Presentation(this, display).apply {
+                setContentView(composeView)
+                // Compose needs these owners, which a Presentation window doesn't provide.
+                window?.decorView?.let {
+                    it.setViewTreeLifecycleOwner(this@MainActivity)
+                    it.setViewTreeViewModelStoreOwner(this@MainActivity)
+                    it.setViewTreeSavedStateRegistryOwner(this@MainActivity)
+                }
+                show()
             }
-            show()
-        }
     }
 }

@@ -1,7 +1,10 @@
 # ThorShowdown
 
 Pokémon Showdown client for the AYN Thor (dual-screen Android handheld).
-Kotlin + Jetpack Compose, single module `app/`.
+Kotlin + Jetpack Compose. Modules:
+- `app/`: Android app (UI, ViewModel, Repository, SessionManager).
+- `showdown-client/`: pure-Kotlin JVM library for the Showdown protocol
+  (see `context/design/showdown_client.md`).
 
 ## Context docs (read first)
 - `context/README.md`: index of the context folder and its conventions.
@@ -24,11 +27,19 @@ Kotlin + Jetpack Compose, single module `app/`.
   reflected there in the same change that implements it. Also update
   `context/design/battle_sequence.txt` if the flow changes, and tick off
   `context/planning/workplan.md` when an issue is done.
+- All design docs should contain a sequence diagram and architecture diagram in addition to code snippet examples
 
 ## Build and test
 - Build: `.\gradlew.bat assembleDebug`
 - Install on running emulator/device: `.\gradlew.bat installDebug`
-- Unit tests: `.\gradlew.bat test`
+- Unit tests (all modules): `.\gradlew.bat test`
+- Client library tests only: `.\gradlew.bat :showdown-client:test`
+- Live test against the real Showdown server (manual, needs network, never in CI):
+  `.\gradlew.bat :showdown-client:liveTest`
+- Lint (whole project, must pass before merging): `.\gradlew.bat ktlintCheck`
+  (auto-fix: `.\gradlew.bat ktlintFormat`)
 - If Gradle can't find Java, set `JAVA_HOME=C:\Program Files\Android\Android Studio\jbr`.
+- CI (`.github/workflows/ci.yml`) runs `ktlintCheck`, `test` and `assembleDebug` on
+  every PR and on pushes to `main`.
 - Bottom-screen testing on the emulator needs a secondary display
   (Extended Controls → Displays → Add secondary display → Apply changes).

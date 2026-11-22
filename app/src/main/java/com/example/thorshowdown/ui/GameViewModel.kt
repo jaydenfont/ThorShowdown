@@ -12,16 +12,24 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-data class TopUiState(val message: String = "Hello World (top)")
-data class BottomUiState(val message: String = "Hello World (bottom)")
+data class TopUiState(
+    val message: String = "Hello World (top)",
+)
+
+data class BottomUiState(
+    val message: String = "Hello World (bottom)",
+)
 
 sealed interface UserAction {
-    data class SendCommand(val command: String) : UserAction
+    data class FindBattle(
+        val formatId: String,
+    ) : UserAction
 }
 
 /** Shared by both displays. Turns repository state into per-screen UI state. */
-class GameViewModel(private val repository: ShowdownRepository) : ViewModel() {
-
+class GameViewModel(
+    private val repository: ShowdownRepository,
+) : ViewModel() {
     private val _topState = MutableStateFlow(TopUiState())
     val topState: StateFlow<TopUiState> = _topState.asStateFlow()
 
@@ -30,16 +38,17 @@ class GameViewModel(private val repository: ShowdownRepository) : ViewModel() {
 
     fun onAction(action: UserAction) {
         when (action) {
-            is UserAction.SendCommand -> viewModelScope.launch { repository.sendCommand(action.command) }
+            is UserAction.FindBattle -> viewModelScope.launch { repository.startSearch(action.formatId) }
         }
     }
 
     companion object {
-        val Factory: ViewModelProvider.Factory = viewModelFactory {
-            initializer {
-                val app = this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as ThorShowdownApp
-                GameViewModel(app.repository)
+        val Factory: ViewModelProvider.Factory =
+            viewModelFactory {
+                initializer {
+                    val app = this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as ThorShowdownApp
+                    GameViewModel(app.repository)
+                }
             }
-        }
     }
 }

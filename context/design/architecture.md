@@ -3,6 +3,7 @@
 A Pokémon Showdown client for the AYN Thor (dual-screen Android handheld).
 Status: high-level design plus stub scaffolding in `app/`. Component designs:
 - [showdown_client.md](showdown_client.md): the `:showdown-client` protocol library (#1).
+- [login.md](login.md): login and saved credentials (#5).
 
 ## Key decision: native client + view-only WebView (option A1)
 
@@ -135,9 +136,9 @@ sequenceDiagram
   menus. Tapping Pokémon for stats tooltips still works.
 - **Lifetime:** create the WebView once and keep it (app-scoped or Activity-
   retained). Recreating it reloads the page and costs ~1s plus a reconnect.
-- **Login:** either the user logs in once in the WebView (site cookies persist), or
-  the app hands the native session to the WebView (e.g. via `CookieManager`).
-  Unverified, see open questions.
+- **Login (#4):** `/api/login` sets a `sid` session cookie (`Domain=pokemonshowdown.com`,
+  ~1 year). The native client exposes it (`LoginResult.Success.sid`), so the likely
+  approach is handing it to the WebView via `CookieManager`. To be confirmed in the #4 spike.
 
 ### BottomScreen (display 1, touch)
 - Stateless composable: move buttons, switch menu, forfeit, timer, battle log.
@@ -156,7 +157,8 @@ sequenceDiagram
 - Lives for the whole app, not one screen, so the native connection isn't tied
   to the Activity lifecycle. Created in `ThorShowdownApp` (later: Hilt).
 - Collects `ShowdownClient.events` and routes them to the SessionManager by room ID.
-- Coordinates login between `ShowdownClient` and `LocalDataSource`.
+- Coordinates login between `ShowdownClient` and `LocalDataSource` and exposes
+  `loginState`. Connects (idempotently) at the start of each login. See [login.md](login.md).
 - Exposes `StateFlow`s; offers suspend functions for commands
   (`startSearch`, `chooseMove`, `switchTo`, `forfeit`).
 - Whether commands go Repository → ShowdownClient directly or via the
@@ -180,11 +182,10 @@ sequenceDiagram
 - Does not reconnect on its own (#12), store credentials (#5) or hold battle state (#6).
 
 ### LocalDataSource
-- **Credentials:** Showdown needs a fresh login (challstr → assertion) on every
-  connect, and there's no reusable token in the known client implementations. So
-  either prompt for the password each launch, or store it encrypted with the
-  Android Keystore. Whether the login server's session cookie can be reused
-  instead is an open question.
+- **Credentials (#5):** username plus the password encrypted with an Android Keystore
+  AES-256-GCM key, in DataStore Preferences, behind a `CredentialStore` interface.
+  Showdown needs a fresh password login (challstr → assertion) on every connect.
+  The `sid` cookie is not stored yet. Details in [login.md](login.md).
 - **Teams, settings, battle logs:** Room (typed SQLite) for structured data,
   DataStore for small key/value settings.
 
@@ -195,6 +196,9 @@ sequenceDiagram
 ```kotlin
 /** UI → ViewModel: everything the user can do. */
 sealed interface UserAction {
+    data class LogIn(val username: String, val password: String) : UserAction
+    data object ContinueAsSaved : UserAction
+    data object UseDifferentAccount : UserAction
     data class FindBattle(val formatId: String) : UserAction
     data class ChooseMove(val slot: Int, val terastallize: Boolean = false) : UserAction
     data class SwitchTo(val slot: Int) : UserAction
@@ -246,7 +250,7 @@ fun onAction(action: UserAction) {
    one-to-one with requests.
 2. **"Showdown Data Source" is now the `ShowdownClient` module**, which also owns
    the login HTTP exchange.
-3. **Local store holds an encrypted password (or nothing), not plain credentials.**
+3. **Local store holds an encrypted password, not plain credentials.**
    DataStore + Keystore for that; Room on top of SQLite for everything else.
 4. **Add SessionManager** under the Repository, and **the WebView** inside the
    top UI with its own (view-only) arrow to Showdown.
@@ -261,8 +265,8 @@ fun onAction(action: UserAction) {
   sees spectator info.
 
 ## Open questions
-- WebView login: user logs in once in the WebView, or share the native session
-  with the WebView via cookies? Needs testing.
+- WebView login: does setting the native `sid` cookie via `CookieManager` log the
+  WebView in? Test in the #4 spike.
 - Commands: Repository → ShowdownClient directly, or via the SessionManager (#6)?
 - Gamepad mapping: which Thor buttons map to moves/switches/confirm?
 - Reconnect strategy: how to resume an in-progress battle after a dropped connection

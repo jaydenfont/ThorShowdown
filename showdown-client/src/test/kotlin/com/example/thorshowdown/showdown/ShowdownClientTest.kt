@@ -156,7 +156,7 @@ class ShowdownClientTest {
 
             val result = client.login(USERNAME, PASSWORD)
 
-            assertEquals(LoginResult.Success(USERNAME), result)
+            assertEquals(LoginResult.Success(USERNAME, FakeLoginApi.VALID_SID), result)
             assertEquals(listOf(FakeLoginApi.Call(USERNAME, PASSWORD, CHALLSTR)), loginApi.calls)
             assertEquals(listOf("$TRN_PREFIX$USERNAME,0,${FakeLoginApi.VALID_ASSERTION}"), server.sent)
         }
@@ -172,7 +172,7 @@ class ShowdownClientTest {
             val result = async { client.login(USERNAME, PASSWORD) }
             server.push("|challstr|$CHALLSTR")
 
-            assertEquals(LoginResult.Success(USERNAME), result.await())
+            assertEquals(LoginResult.Success(USERNAME, FakeLoginApi.VALID_SID), result.await())
             assertEquals(CHALLSTR, loginApi.calls.single().challstr)
         }
 
@@ -283,6 +283,47 @@ class ShowdownClientTest {
 
         assertTrue(logs.messages.any { "$TRN_PREFIX$USERNAME,0,<redacted>" in it })
         assertTrue(logs.messages.none { FakeLoginApi.VALID_ASSERTION in it || PASSWORD in it })
+    }
+
+    @Test
+    fun ShowdownClient_LoginServerSetsNoSid_ReturnsSuccessWithNullSid() =
+        runTest(UnconfinedTestDispatcher()) {
+            val client = newClient(FakeLoginApi(sid = null))
+            client.connect()
+            server.push("|challstr|$CHALLSTR")
+            server.replyTo = { message -> UPDATE_USER_NAMED.takeIf { message.startsWith(TRN_PREFIX) } }
+
+            val result = client.login(USERNAME, PASSWORD)
+
+            assertEquals(LoginResult.Success(USERNAME, sid = null), result)
+        }
+
+    @Test
+    fun ShowdownClient_SuccessfulLogin_NeverLogsSid() {
+        val logs = LogCapture(LIBRARY_LOGGER)
+
+        logs.use {
+            runTest(UnconfinedTestDispatcher()) {
+                val client = newClient()
+                client.connect()
+                server.push("|challstr|$CHALLSTR")
+                server.replyTo = { message -> UPDATE_USER_NAMED.takeIf { message.startsWith(TRN_PREFIX) } }
+
+                client.login(USERNAME, PASSWORD)
+            }
+        }
+
+        assertTrue(logs.messages.none { FakeLoginApi.VALID_SID in it })
+    }
+
+    @Test
+    fun LoginResult_SuccessToString_RedactsSid() {
+        val success = LoginResult.Success(USERNAME, FakeLoginApi.VALID_SID)
+
+        val description = success.toString()
+
+        assertTrue(USERNAME in description)
+        assertTrue(FakeLoginApi.VALID_SID !in description)
     }
 
     @Test

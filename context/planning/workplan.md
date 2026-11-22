@@ -24,7 +24,7 @@ a WebView, and survive a dropped connection.
 
 | Status | Issue | Depends on | Notes |
 |---|---|---|---|
-| [ ] | [#5 Implement Login](https://github.com/jaydenfont/ThorShowdown/issues/5) | #1, #4 spike | Fresh challstr → assertion on every connect. WebView login approach comes from the spike. |
+| [x] | [#5 Implement Login](https://github.com/jaydenfont/ThorShowdown/issues/5) | #1 | Native login + saved credentials (Keystore-encrypted). Design: [login.md](../design/login.md). WebView login moved to #4 (hand over the `sid` cookie). |
 | [ ] | [#6 Implement Showdown Session Manager](https://github.com/jaydenfont/ThorShowdown/issues/6) | #1 | One session per room ID. See open items below. |
 | [ ] | [#10 Implement start of battle flow](https://github.com/jaydenfont/ThorShowdown/issues/10) | #1, #5, #6 | `\|/utm null` → `\|/search gen9randombattle` → wait for `\|init\|battle`; support cancel. Issue has no description yet. |
 | [ ] | [#7 Bottom Screen Battle Functionality](https://github.com/jaydenfont/ThorShowdown/issues/7) | #6 | Functional first (moves, Tera, switch, forfeit, log). DS styling after the loop works. |
@@ -54,7 +54,7 @@ a WebView, and survive a dropped connection.
                 ├──▶ #6 Session ┼──▶ #7 Bottom screen ─────────┴──────────▶ #9 Gamepad
                 │      Manager  └──▶ #4 WebView (full) ──▶ #12 Reconnect
                 └──▶ #11 Errors/Logging
-#4 WebView spike ──▶ #5 Login, #4 WebView (full)
+#4 WebView spike ──▶ #4 WebView (full, incl. WebView login via the sid cookie)
 #2 Signing ──▶ #3 Release Action
 ```
 

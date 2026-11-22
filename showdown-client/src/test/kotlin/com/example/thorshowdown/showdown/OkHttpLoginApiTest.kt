@@ -5,6 +5,7 @@ import mockwebserver3.MockResponse
 import mockwebserver3.MockWebServer
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -30,10 +31,10 @@ class OkHttpLoginApiTest {
             loginServer.enqueue(MockResponse.Builder().body("""]{"actionsuccess":true,"assertion":"ASSERT-123"}""").build())
             val api = OkHttpLoginApi(config())
 
-            val assertion = api.fetchAssertion("Alice", "p&ss word", "4|abc")
+            val response = api.fetchAssertion("Alice", "p&ss word", "4|abc")
 
             val request = loginServer.takeRequest()
-            assertEquals("ASSERT-123", assertion)
+            assertEquals("ASSERT-123", response.assertion)
             assertEquals("POST", request.method)
             assertEquals(USER_AGENT, request.headers["User-Agent"])
             assertEquals(
@@ -48,9 +49,31 @@ class OkHttpLoginApiTest {
             loginServer.enqueue(MockResponse.Builder().body("""]{"actionsuccess":false}""").build())
             val api = OkHttpLoginApi(config())
 
-            val assertion = api.fetchAssertion("Alice", "wrong", "4|abc")
+            val response = api.fetchAssertion("Alice", "wrong", "4|abc")
 
-            assertEquals("", assertion)
+            assertEquals("", response.assertion)
+        }
+
+    @Test
+    fun OkHttpLoginApi_ServerSetsSidCookie_ReturnsSidAsSent() =
+        runTest {
+            loginServer.enqueue(loginResponseWithCookie(SID_COOKIE_HEADER))
+            val api = OkHttpLoginApi(config())
+
+            val response = api.fetchAssertion("Alice", "pw", "4|abc")
+
+            assertEquals(SID_VALUE, response.sid)
+        }
+
+    @Test
+    fun OkHttpLoginApi_ServerSetsNoSidCookie_ReturnsNullSid() =
+        runTest {
+            loginServer.enqueue(loginResponseWithCookie(OTHER_COOKIE_HEADER))
+            val api = OkHttpLoginApi(config())
+
+            val response = api.fetchAssertion("Alice", "pw", "4|abc")
+
+            assertNull(response.sid)
         }
 
     @Test
@@ -88,6 +111,13 @@ class OkHttpLoginApiTest {
             URLDecoder.decode(key, Charsets.UTF_8) to URLDecoder.decode(value, Charsets.UTF_8)
         }
 
+    private fun loginResponseWithCookie(setCookie: String): MockResponse =
+        MockResponse
+            .Builder()
+            .addHeader(SET_COOKIE_HEADER, setCookie)
+            .body("""]{"actionsuccess":true,"assertion":"ASSERT-123"}""")
+            .build()
+
     private fun config(): ShowdownConfig =
         ShowdownConfig(
             loginUrl = loginServer.url(LOGIN_PATH).toString(),
@@ -98,5 +128,9 @@ class OkHttpLoginApiTest {
         const val LOGIN_PATH = "/api/login"
         const val USER_AGENT = "ThorShowdown/test"
         const val HTTP_SERVER_ERROR = 500
+        const val SET_COOKIE_HEADER = "Set-Cookie"
+        const val SID_VALUE = "alice%2C1%2C0123abcdef"
+        const val SID_COOKIE_HEADER = "sid=$SID_VALUE; Max-Age=31363200; Domain=pokemonshowdown.com; Path=/; Secure; SameSite=None"
+        const val OTHER_COOKIE_HEADER = "theme=dark; Path=/"
     }
 }

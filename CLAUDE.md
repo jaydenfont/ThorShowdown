@@ -36,6 +36,9 @@ Kotlin + Jetpack Compose. Modules:
 - Client library tests only: `.\gradlew.bat :showdown-client:test`
 - Live test against the real Showdown server (manual, needs network, never in CI):
   `.\gradlew.bat :showdown-client:liveTest`
+- Instrumented tests (Keystore, DataStore; manual, needs the emulator, never in CI). Set
+  `ANDROID_SERIAL=emulator-5554` first so they don't run on a plugged-in Thor:
+  `.\gradlew.bat :app:connectedDebugAndroidTest`
 - Lint (whole project, must pass before merging): `.\gradlew.bat ktlintCheck`
   (auto-fix: `.\gradlew.bat ktlintFormat`)
 - If Gradle can't find Java, set `JAVA_HOME=C:\Program Files\Android\Android Studio\jbr`.

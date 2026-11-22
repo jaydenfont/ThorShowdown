@@ -61,25 +61,27 @@ public class DefaultShowdownClient(
         password: String,
     ): LoginResult {
         val challstr = latestChallstr.filterNotNull().first()
-        val assertion =
+        val response =
             try {
                 loginApi.fetchAssertion(name, password, challstr)
             } catch (e: IOException) {
                 return LoginResult.Failure(LoginFailure.Network, e.message ?: NETWORK_MESSAGE)
             }
-        if (isRefused(assertion)) return LoginResult.Failure(LoginFailure.WrongPassword, refusalMessage(assertion))
-        return claimName(name, assertion)
+        if (isRefused(response.assertion)) {
+            return LoginResult.Failure(LoginFailure.WrongPassword, refusalMessage(response.assertion))
+        }
+        return claimName(name, response)
     }
 
     /** Sends `/trn` and waits for the server to accept or reject the name. */
     private suspend fun claimName(
         name: String,
-        assertion: String,
+        response: LoginResponse,
     ): LoginResult =
         try {
             events
-                .onSubscription { send(Commands.trn(name, assertion)) }
-                .mapNotNull { loginOutcome(it, name) }
+                .onSubscription { send(Commands.trn(name, response.assertion)) }
+                .mapNotNull { loginOutcome(it, name, response.sid) }
                 .first()
         } catch (e: IOException) {
             LoginResult.Failure(LoginFailure.Network, e.message ?: CONNECTION_CLOSED_MESSAGE)
@@ -91,9 +93,11 @@ public class DefaultShowdownClient(
     private fun loginOutcome(
         event: ShowdownEvent,
         name: String,
+        sid: String?,
     ): LoginResult? =
         when (event) {
-            is ShowdownEvent.UpdateUser -> event.takeIf { it.named && toId(it.name) == toId(name) }?.let { LoginResult.Success(it.name) }
+            is ShowdownEvent.UpdateUser ->
+                event.takeIf { it.named && toId(it.name) == toId(name) }?.let { LoginResult.Success(it.name, sid) }
             is ShowdownEvent.NameTaken -> LoginResult.Failure(LoginFailure.NameTaken, event.message)
             is ShowdownEvent.Disconnected -> LoginResult.Failure(LoginFailure.Network, event.reason ?: CONNECTION_CLOSED_MESSAGE)
             else -> null

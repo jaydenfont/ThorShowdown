@@ -1,3 +1,25 @@
 <resources>
     <string name="app_name">Thor Showdown</string>
+
+    <!-- Top screen -->
+    <string name="top_log_in_below">Log in on the bottom screen</string>
+    <string name="top_logged_in_as">Logged in as %1$s</string>
+
+    <!-- Login (bottom screen) -->
+    <string name="login_title">Log in to Pokémon Showdown</string>
+    <string name="login_loading">Loading…</string>
+    <string name="login_username">Username</string>
+    <string name="login_password">Password</string>
+    <string name="login_button">Log in</string>
+    <string name="login_continue_as">Continue as %1$s</string>
+    <string name="login_use_different_account">Use a different account</string>
+    <string name="login_logging_in_as">Logging in as %1$s…</string>
+    <string name="login_logged_in_as">Logged in as %1$s</string>
+
+    <!-- Login failures, one per LoginFailure -->
+    <string name="login_error_not_connected">Not connected to Showdown. Try again.</string>
+    <string name="login_error_wrong_password">Wrong password for %1$s.</string>
+    <string name="login_error_name_taken">%1$s can\'t be used right now: %2$s</string>
+    <string name="login_error_network">Couldn\'t reach Showdown. Check your connection and try again.</string>
+    <string name="login_error_timeout">Showdown didn\'t respond in time. Try again.</string>
 </resources>

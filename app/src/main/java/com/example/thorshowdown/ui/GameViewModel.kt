@@ -6,21 +6,39 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.example.thorshowdown.ThorShowdownApp
+import com.example.thorshowdown.data.LoginState
 import com.example.thorshowdown.data.ShowdownRepository
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
+/** Top screen (display 0). [loggedInUsername] is null until the native login succeeds. */
 data class TopUiState(
-    val message: String = "Hello World (top)",
+    val loggedInUsername: String? = null,
 )
 
+/** Bottom screen (display 1). */
 data class BottomUiState(
-    val message: String = "Hello World (bottom)",
+    val login: LoginUiState = LoginUiState.Loading,
 )
 
+/** Everything the user can do from either screen. */
 sealed interface UserAction {
+    data class LogIn(
+        val username: String,
+        val password: String,
+    ) : UserAction
+
+    /** Log in with the saved login. */
+    data object ContinueAsSaved : UserAction
+
+    /** Decline the saved login and show the form. */
+    data object UseDifferentAccount : UserAction
+
     data class FindBattle(
         val formatId: String,
     ) : UserAction
@@ -30,14 +48,28 @@ sealed interface UserAction {
 class GameViewModel(
     private val repository: ShowdownRepository,
 ) : ViewModel() {
-    private val _topState = MutableStateFlow(TopUiState())
-    val topState: StateFlow<TopUiState> = _topState.asStateFlow()
+    /** Set once the user declines the saved login; UI-only, so it lives here and not in the repository. */
+    private val useDifferentAccount = MutableStateFlow(false)
 
-    private val _bottomState = MutableStateFlow(BottomUiState())
-    val bottomState: StateFlow<BottomUiState> = _bottomState.asStateFlow()
+    val topState: StateFlow<TopUiState> =
+        repository.loginState
+            .map { TopUiState(loggedInUsername = (it as? LoginState.LoggedIn)?.username) }
+            .stateIn(viewModelScope, SharingStarted.Eagerly, TopUiState())
+
+    val bottomState: StateFlow<BottomUiState> =
+        combine(repository.loginState, useDifferentAccount) { state, declined ->
+            BottomUiState(login = LoginUiState.from(state, declined))
+        }.stateIn(viewModelScope, SharingStarted.Eagerly, BottomUiState())
+
+    init {
+        viewModelScope.launch { repository.loadSavedLogin() }
+    }
 
     fun onAction(action: UserAction) {
         when (action) {
+            is UserAction.LogIn -> viewModelScope.launch { repository.login(action.username, action.password) }
+            UserAction.ContinueAsSaved -> viewModelScope.launch { repository.loginWithSaved() }
+            UserAction.UseDifferentAccount -> useDifferentAccount.value = true
             is UserAction.FindBattle -> viewModelScope.launch { repository.startSearch(action.formatId) }
         }
     }

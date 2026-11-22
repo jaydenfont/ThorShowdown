@@ -17,10 +17,10 @@ about Android, the UI or battle state.
 |---|---|
 | Module | Pure-Kotlin JVM Gradle module `:showdown-client`, package `com.example.thorshowdown.showdown`. `app` depends on it; it depends on nothing in `app`. |
 | Dependencies | OkHttp (WebSocket + login POST), kotlinx.serialization JSON, kotlinx.coroutines. |
-| Scope | Connect/disconnect, frame splitting + parsing, command building, login. **Not** reconnect/backoff (#12), credential storage (#5), battle state (#6). |
+| Scope | Connect/disconnect, frame splitting + parsing, command building, login. **Not** reconnect/backoff (#12), credential storage (#5, see [login.md](login.md)), battle state (#6). |
 | Events | Hot `SharedFlow<ShowdownEvent>`, 1024-event buffer, suspends when full. Contract: **collect before `connect()`**. |
 | Typed events | `Connected`, `Disconnected`, `ChallStr`, `UpdateUser`, `NameTaken`, `UpdateSearch`, `Popup`, `PrivateMessage`, `RoomInit`, `RoomDeinit`, `Title`, `Request`, `Turn`, `Win`, `Tie`, `BattleError`, `Inactive`, `InactiveOff`. Everything else: `Unparsed(roomId, type, args, tags)`. Nothing is dropped. |
-| Login | `suspend login(name, password): LoginResult`. Waits for this connection's challstr, 20 s timeout. `;;`-prefixed or empty assertion = `WrongPassword`. |
+| Login | `suspend login(name, password): LoginResult`. Waits for this connection's challstr, 20 s timeout. `;;`-prefixed or empty assertion = `WrongPassword`. `Success` carries the `sid` session cookie from `/api/login` (for the WebView, #4); it is never logged. |
 | Commands | Return `Unit`; throw `NotConnectedException` with no open socket. Server rejections arrive as events (`BattleError`, `Popup`, `PrivateMessage` from `~`). |
 | Choices | `Choice.Move(slot, terastallize)`, `Choice.Switch(slot)`, `Choice.Default`, `Choice.Undo` (singles, gen9randombattle P0). |
 | `\|request\|` | Typed P0 fields + the raw JSON string. Unknown keys ignored. `disabled` is bool-or-reason. |
@@ -96,13 +96,13 @@ sequenceDiagram
     R->>C: login(name, password)
     C->>L: fetchAssertion(name, password, challstr)
     L->>S: POST /api/login
-    S-->>L: ]{"assertion":"..."}
+    S-->>L: Set-Cookie: sid=..., ]{"assertion":"..."}
     alt assertion ok
         C->>T: send("|/trn name,0,assertion")
         T->>S: |/trn ...
         S-->>T: |updateuser| Name|1|...
         C-->>R: UpdateUser(named = true)
-        C-->>R: LoginResult.Success(name)
+        C-->>R: LoginResult.Success(name, sid)
     else empty assertion, or one starting with #59;#59;
         C-->>R: LoginResult.Failure(WrongPassword)
     else |nametaken| / network error / 20 s timeout
@@ -173,7 +173,7 @@ interface ShowdownClient {
 }
 
 sealed interface LoginResult {
-    data class Success(val username: String) : LoginResult
+    data class Success(val username: String, val sid: String?) : LoginResult  // toString redacts sid
     data class Failure(val reason: LoginFailure, val message: String) : LoginResult
 }
 
@@ -198,8 +198,11 @@ sealed interface TransportEvent {
 
 /** Exchanges credentials + challstr for a login assertion. */
 interface LoginApi {
-    suspend fun fetchAssertion(name: String, password: String, challstr: String): String
+    suspend fun fetchAssertion(name: String, password: String, challstr: String): LoginResponse
 }
+
+/** [sid] is the `sid` cookie from `Set-Cookie`, kept URL-encoded as sent; null if absent. */
+data class LoginResponse(val assertion: String, val sid: String?)
 ```
 
 ### Events and choices
@@ -282,6 +285,5 @@ class ShowdownRepository(private val client: ShowdownClient, scope: CoroutineSco
 
 ## Out of scope (tracked elsewhere)
 - Reconnect with backoff, rejoining rooms: [#12](https://github.com/jaydenfont/ThorShowdown/issues/12).
-- Saving credentials: [#5](https://github.com/jaydenfont/ThorShowdown/issues/5).
 - Per-room battle state: [#6](https://github.com/jaydenfont/ThorShowdown/issues/6).
 - Teams other than `null` (packed format), challenges, doubles, other gimmicks: when a feature needs them.

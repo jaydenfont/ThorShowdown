@@ -21,9 +21,9 @@ public class OkHttpLoginApi(
         name: String,
         password: String,
         challstr: String,
-    ): String {
-        val body = post(loginRequest(name, password, challstr))
-        return parseAssertion(body)
+    ): LoginResponse {
+        val reply = post(loginRequest(name, password, challstr))
+        return LoginResponse(parseAssertion(reply.body), findSid(reply.setCookies))
     }
 
     private fun loginRequest(
@@ -46,8 +46,8 @@ public class OkHttpLoginApi(
             .build()
     }
 
-    /** Sends [request] and returns the response body. */
-    private suspend fun post(request: Request): String =
+    /** Sends [request] and returns the body and `Set-Cookie` headers of a successful response. */
+    private suspend fun post(request: Request): Reply =
         suspendCancellableCoroutine { continuation ->
             val call = httpClient.newCall(request)
             continuation.invokeOnCancellation { call.cancel() }
@@ -66,7 +66,7 @@ public class OkHttpLoginApi(
                     ) {
                         response.use {
                             if (it.isSuccessful) {
-                                continuation.resume(it.body.string())
+                                continuation.resume(Reply(it.body.string(), it.headers(HEADER_SET_COOKIE)))
                             } else {
                                 continuation.resumeWithException(IOException("$HTTP_ERROR_MESSAGE ${it.code}"))
                             }
@@ -83,17 +83,36 @@ public class OkHttpLoginApi(
     private fun parseAssertion(body: String): String {
         val json = body.removePrefix(ANTI_HIJACK_PREFIX)
         val response =
-            ProtocolJson.decodeOrNull(LoginResponse.serializer(), json)
+            ProtocolJson.decodeOrNull(LoginBody.serializer(), json)
                 ?: throw IOException(UNREADABLE_RESPONSE_MESSAGE)
         return response.assertion.orEmpty()
     }
 
+    /**
+     * The `sid` value from [setCookies], as sent. Only the leading `name=value` of each header
+     * matters; the attributes (domain, expiry) are for the browser that will receive it.
+     */
+    private fun findSid(setCookies: List<String>): String? =
+        setCookies
+            .map { it.substringBefore(COOKIE_ATTRIBUTE_SEPARATOR) }
+            .firstOrNull { it.substringBefore(COOKIE_NAME_SEPARATOR).trim() == SID_COOKIE_NAME }
+            ?.substringAfter(COOKIE_NAME_SEPARATOR)
+
+    private class Reply(
+        val body: String,
+        val setCookies: List<String>,
+    )
+
     @Serializable
-    private data class LoginResponse(
+    private data class LoginBody(
         val assertion: String? = null,
     )
 
     private companion object {
+        const val HEADER_SET_COOKIE = "Set-Cookie"
+        const val SID_COOKIE_NAME = "sid"
+        const val COOKIE_ATTRIBUTE_SEPARATOR = ";"
+        const val COOKIE_NAME_SEPARATOR = "="
         const val FIELD_NAME = "name"
         const val FIELD_PASSWORD = "pass"
         const val FIELD_CHALLSTR = "challstr"

@@ -49,6 +49,18 @@ class LiveShowdownTest {
         }
 
     @Test
+    fun LiveShowdown_LoginWithUnregisteredName_ReturnsSidCookie() =
+        runBlocking {
+            withTimeout(LIVE_TIMEOUT) {
+                client.connect()
+
+                val result = client.login(throwawayName(), THROWAWAY_PASSWORD)
+
+                assertTrue("Login didn't return a sid: $result", (result as? LoginResult.Success)?.sid?.isNotBlank() == true)
+            }
+        }
+
+    @Test
     fun LiveShowdown_CancelSearchWhileIdle_ServerRepliesWithEmptySearch() =
         runBlocking {
             withTimeout(LIVE_TIMEOUT) {

@@ -3,6 +3,7 @@ title ThorShowdown Battle Flow (A1: native client + view-only WebView)
 participant BottomScreen
 participant GameViewModel
 participant Repository
+participant Matchmaker
 participant SessionManager
 participant ShowdownClient
 participant "Showdown Server" as Server
@@ -16,14 +17,19 @@ Server-->ShowdownClient: assertion
 ShowdownClient->Server: |/trn username,0,assertion
 Server-->ShowdownClient: |updateuser|username|1|...
 
-BottomScreen->GameViewModel: onAction(FindBattle)
-GameViewModel->Repository: startSearch(format)
-Repository->ShowdownClient: send("|/utm null") then send("|/search format")
-ShowdownClient->Server: |/search format
+BottomScreen->GameViewModel: onAction(FindBattle(Gen9RandomBattle))
+GameViewModel->Repository: startSearch(format) (only when logged in)
+Repository->Matchmaker: start(format): Requested, 10 s timeout
+Matchmaker->ShowdownClient: useTeam(null), search(format)
+ShowdownClient->Server: |/utm null, |/search format
+Server-->ShowdownClient: |updatesearch| searching = [format]
+Repository->Matchmaker: handle(UpdateSearch): Searching
 note over Server: matchmaking (async, can take minutes)
 Server-->ShowdownClient: |init|battle (roomId)
 ShowdownClient-->Repository: messages flow
 Repository->SessionManager: handle(RoomInit): new session, now current
+Server-->ShowdownClient: |updatesearch| searching = []
+Repository->Matchmaker: handle(UpdateSearch): Idle
 SessionManager-->GameViewModel: currentRoomId
 GameViewModel-->WebView: show room (roomId)
 WebView->Server: own connection: open battle room (view only)

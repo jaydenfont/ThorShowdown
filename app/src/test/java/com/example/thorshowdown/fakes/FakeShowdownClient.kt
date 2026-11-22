@@ -11,7 +11,7 @@ import kotlinx.coroutines.flow.asSharedFlow
 import java.io.IOException
 
 /**
- * Scriptable stand-in for [ShowdownClient]: records connects, logins and room commands,
+ * Scriptable stand-in for [ShowdownClient]: records connects, logins, room and search commands,
  * answers logins with [loginResult], and lets tests push events with [emit].
  */
 class FakeShowdownClient(
@@ -42,6 +42,12 @@ class FakeShowdownClient(
     /** Room commands sent, in order. */
     val roomCommands = mutableListOf<RoomCommand>()
 
+    /** When set, search commands throw it, as if the socket had died. */
+    var searchFailure: Exception? = null
+
+    /** Team and ladder-search commands sent, in order. */
+    val searchCommands = mutableListOf<SearchCommand>()
+
     /** Delivers [event] to collectors, as if the server had sent it. */
     suspend fun emit(event: ShowdownEvent) = mutableEvents.emit(event)
 
@@ -62,11 +68,11 @@ class FakeShowdownClient(
         return loginResult
     }
 
-    override suspend fun useTeam(packedTeam: String?) = Unit
+    override suspend fun useTeam(packedTeam: String?) = record(SearchCommand.UseTeam(packedTeam))
 
-    override suspend fun search(formatId: String) = Unit
+    override suspend fun search(formatId: String) = record(SearchCommand.Search(formatId))
 
-    override suspend fun cancelSearch() = Unit
+    override suspend fun cancelSearch() = record(SearchCommand.CancelSearch)
 
     override suspend fun join(roomId: String) = Unit
 
@@ -83,6 +89,11 @@ class FakeShowdownClient(
     private fun record(command: RoomCommand) {
         commandFailure?.let { throw it }
         roomCommands += command
+    }
+
+    private fun record(command: SearchCommand) {
+        searchFailure?.let { throw it }
+        searchCommands += command
     }
 
     data class Login(
@@ -104,6 +115,18 @@ class FakeShowdownClient(
         data class Leave(
             val roomId: String,
         ) : RoomCommand
+    }
+
+    sealed interface SearchCommand {
+        data class UseTeam(
+            val packedTeam: String?,
+        ) : SearchCommand
+
+        data class Search(
+            val formatId: String,
+        ) : SearchCommand
+
+        data object CancelSearch : SearchCommand
     }
 
     companion object {

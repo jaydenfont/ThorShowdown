@@ -26,7 +26,7 @@ a WebView, and survive a dropped connection.
 |---|---|---|---|
 | [x] | [#5 Implement Login](https://github.com/jaydenfont/ThorShowdown/issues/5) | #1 | Native login + saved credentials (Keystore-encrypted). Design: [login.md](../design/login.md). WebView login moved to #4 (hand over the `sid` cookie). |
 | [x] | [#6 Implement Showdown Session Manager](https://github.com/jaydenfont/ThorShowdown/issues/6) | #1 | One session per room ID; room commands, leave (forfeits if unfinished), room switching. Design: [session_manager.md](../design/session_manager.md). |
-| [ ] | [#10 Implement start of battle flow](https://github.com/jaydenfont/ThorShowdown/issues/10) | #1, #5, #6 | `\|/utm null` → `\|/search gen9randombattle` → wait for `\|init\|battle`; support cancel. Issue has no description yet. |
+| [x] | [#10 Implement start of battle flow](https://github.com/jaydenfont/ThorShowdown/issues/10) | #1, #5, #6 | Matchmaker: search / cancel / refusal / timeout; temporary bottom-screen lobby. Design: [battle_start.md](../design/battle_start.md). |
 | [ ] | [#7 Bottom Screen Battle Functionality](https://github.com/jaydenfont/ThorShowdown/issues/7) | #6 | Functional first (moves, Tera, switch, forfeit, log). DS styling after the loop works. |
 | [ ] | [#4 WebView viewer for top screen](https://github.com/jaydenfont/ThorShowdown/issues/4) (**full**) | #5, #6, spike | Follows the session's current room ID. |
 
@@ -65,4 +65,8 @@ a WebView, and survive a dropped connection.
   the only gimmick). Confirm P0 format.
 - **End of battle:** #6 keeps finished sessions with their result until the player
   leaves; the result screen and "leave" button belong to #7, return to menu to #8.
-- **#10, #11** have no descriptions yet.
+- **#11** has no description yet. Search refusals (popup / PM from `~` right after a
+  search) are already shown by #10; other popups are #11's.
+- **#8 menu placement:** the #8 issue puts the main menu on the **top** screen, but #5
+  put login on the **bottom** screen and #10 added a temporary bottom-screen lobby.
+  Decide in #8: move login to the top, or put the menu on the bottom.

@@ -5,6 +5,7 @@ Status: high-level design plus stub scaffolding in `app/`. Component designs:
 - [showdown_client.md](showdown_client.md): the `:showdown-client` protocol library (#1).
 - [login.md](login.md): login and saved credentials (#5).
 - [session_manager.md](session_manager.md): battle sessions and room commands (#6).
+- [battle_start.md](battle_start.md): ladder search and the start of a battle (#10).
 
 ## Key decision: native client + view-only WebView (option A1)
 
@@ -34,6 +35,7 @@ flowchart TB
     subgraph data ["Data (:app)"]
         Repo["Repository<br/>(app-scoped)"]
         SM["SessionManager<br/>(BattleSession per room ID)"]
+        MM["Matchmaker<br/>(ladder search)"]
         Local["LocalDataSource<br/>(DataStore / Room)"]
     end
 
@@ -46,6 +48,7 @@ flowchart TB
     Bottom -- "observes bottomState, onAction" --> VM
     VM -- "calls" --> Repo
     Repo -- owns --> SM
+    Repo -- owns --> MM
     Repo --> Local
     Repo -- "collects events, sends commands" --> Client
     Client <-- "WebSocket frames, login POST" --> Server
@@ -69,6 +72,7 @@ sequenceDiagram
     participant B as BottomScreen
     participant VM as GameViewModel
     participant R as Repository
+    participant MM as Matchmaker
     participant SM as SessionManager
     participant C as ShowdownClient
     participant S as Showdown Server
@@ -82,14 +86,19 @@ sequenceDiagram
     C->>S: |/trn username,0,assertion
     S-->>C: |updateuser|username|1|...
 
-    B->>VM: onAction(FindBattle)
-    VM->>R: startSearch(format)
-    R->>C: useTeam(null), search(format)
+    B->>VM: onAction(FindBattle(format))
+    VM->>R: startSearch(format) (only when logged in)
+    R->>MM: start(format): Requested, 10 s timeout
+    MM->>C: useTeam(null), search(format)
     C->>S: |/utm null, |/search format
+    S-->>C: |updatesearch| searching = [format]
+    R->>MM: handle(UpdateSearch): Searching
     Note over S: matchmaking (async)
     S-->>C: >roomId |init|battle
     C-->>R: RoomInit(roomId)
     R->>SM: handle(RoomInit): new session, now current
+    S-->>C: |updatesearch| searching = []
+    R->>MM: handle(UpdateSearch): Idle
     SM-->>VM: currentRoomId
     VM-->>W: show room (roomId)
     W->>S: own connection: open battle room (view only)
@@ -154,6 +163,9 @@ sequenceDiagram
 - Stateless composable: move buttons, switch menu, forfeit, timer, battle log.
 - Built entirely from `|request|` data held in the SessionManager.
 - Reports user actions via `onAction(UserAction)`. Never talks to the WebView.
+- **Until #7/#8 (#10):** after login it shows a temporary lobby: "Find a Random Battle" /
+  "Searching…" + Cancel, and a card for the current battle with "Leave battle"
+  (an unfinished battle asks "Forfeit and leave?" first). See [battle_start.md](battle_start.md).
 
 ### GameViewModel (one, shared)
 - Single source of UI truth for both displays, so they can't drift apart.
@@ -169,11 +181,22 @@ sequenceDiagram
 - Collects `ShowdownClient.events` and routes them to the SessionManager by room ID.
 - Coordinates login between `ShowdownClient` and `LocalDataSource` and exposes
   `loginState`. Connects (idempotently) at the start of each login. See [login.md](login.md).
-- Exposes `StateFlow`s; offers suspend functions for commands
-  (`startSearch`, `chooseMove`, `switchTo`, `forfeit`).
-- Sends global commands (login, `useTeam`, `search`) to the ShowdownClient itself;
-  room commands (`choose`, `forfeit`, `leave`) go through the SessionManager (#6).
-- Collects `client.events` from `init`, subscribed before any `connect()`.
+- Exposes `StateFlow`s (`loginState`, `searchState`, `sessions`); offers suspend functions
+  for commands (`startSearch`, `cancelSearch`, `chooseMove`, `switchTo`, `forfeit`, `leave`).
+- Sends login to the ShowdownClient itself; search commands (`useTeam`, `search`,
+  `cancelSearch`) go through the Matchmaker (#10), room commands (`choose`, `forfeit`,
+  `leave`) through the SessionManager (#6). `startSearch` is ignored unless logged in.
+- Collects `client.events` from `init`, subscribed before any `connect()`, and hands each
+  event to the Matchmaker and the SessionManager.
+
+### Matchmaker (owned by Repository)
+- Runs ladder searches (`BattleFormat`, P0: `Gen9RandomBattle`): `|/utm null` then
+  `|/search`, and `|/cancelsearch`.
+- Exposes `StateFlow<SearchState>`: `Idle(error)`, `Requested` (sent), `Searching`
+  (confirmed). The server's `|updatesearch|` is the source of truth; `Disconnected` → `Idle`.
+- While `Requested`, a `|popup|` or PM from `~` is a refusal; no reply in 10 s is
+  `NoResponse`; a failed send is `SendFailed`. Details: [battle_start.md](battle_start.md).
+- A match needs nothing from it: the server's `|init|battle` starts the session (#6).
 
 ### SessionManager (owned by Repository)
 - Holds one `BattleSession` per active room ID (Showdown allows several at once).
@@ -214,7 +237,9 @@ sealed interface UserAction {
     data class LogIn(val username: String, val password: String) : UserAction
     data object ContinueAsSaved : UserAction
     data object UseDifferentAccount : UserAction
-    data class FindBattle(val formatId: String) : UserAction
+    data class FindBattle(val format: BattleFormat) : UserAction
+    data object CancelSearch : UserAction
+    data class LeaveBattle(val roomId: String) : UserAction
     data class ChooseMove(val slot: Int, val terastallize: Boolean = false) : UserAction
     data class SwitchTo(val slot: Int) : UserAction
     data object Forfeit : UserAction
@@ -250,7 +275,9 @@ class ThorShowdownApp : Application() {
 fun onAction(action: UserAction) {
     viewModelScope.launch {
         when (action) {
-            is UserAction.FindBattle -> repository.startSearch(action.formatId)
+            is UserAction.FindBattle -> repository.startSearch(action.format)
+            UserAction.CancelSearch -> repository.cancelSearch()
+            is UserAction.LeaveBattle -> repository.leave(action.roomId)
             is UserAction.ChooseMove -> repository.chooseMove(currentRoomId, action.slot, action.terastallize)
             is UserAction.SwitchTo -> repository.switchTo(currentRoomId, action.slot)
             UserAction.Forfeit -> repository.forfeit(currentRoomId)

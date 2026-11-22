@@ -22,4 +22,23 @@
     <string name="login_error_name_taken">%1$s can\'t be used right now: %2$s</string>
     <string name="login_error_network">Couldn\'t reach Showdown. Check your connection and try again.</string>
     <string name="login_error_timeout">Showdown didn\'t respond in time. Try again.</string>
+
+    <!-- Lobby (bottom screen, until the main menu in #8) -->
+    <string name="lobby_find_random_battle">Find a Random Battle</string>
+    <string name="lobby_searching">Searching for an opponent…</string>
+    <string name="lobby_cancel_search">Cancel</string>
+    <string name="lobby_battle_untitled">Battle starting…</string>
+    <string name="lobby_leave_battle">Leave battle</string>
+    <string name="lobby_result_won">You won!</string>
+    <string name="lobby_result_lost">You lost.</string>
+    <string name="lobby_result_tied">It\'s a tie.</string>
+    <string name="lobby_forfeit_title">Forfeit and leave?</string>
+    <string name="lobby_forfeit_text">This battle isn\'t over. Leaving now counts as a loss.</string>
+    <string name="lobby_forfeit_confirm">Forfeit</string>
+    <string name="lobby_forfeit_dismiss">Keep playing</string>
+
+    <!-- Search failures, one per SearchError -->
+    <string name="lobby_error_refused">Showdown refused the search: %1$s</string>
+    <string name="lobby_error_no_response">Showdown didn\'t respond to the search. Try again.</string>
+    <string name="lobby_error_send_failed">Not connected to Showdown. Try again.</string>
 </resources>

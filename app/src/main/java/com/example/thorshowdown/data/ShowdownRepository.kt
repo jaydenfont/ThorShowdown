@@ -29,9 +29,17 @@ class ShowdownRepository(
     /** Every battle the user is in, and which one is shown. */
     val sessions: StateFlow<SessionsState> = sessionManager.state
 
+    private val matchmaker = Matchmaker(client, scope)
+
+    /** The ladder search, if any. */
+    val searchState: StateFlow<SearchState> = matchmaker.state
+
     init {
         scope.launch(start = CoroutineStart.UNDISPATCHED) {
-            client.events.collect(sessionManager::handle)
+            client.events.collect { event ->
+                matchmaker.handle(event)
+                sessionManager.handle(event)
+            }
         }
     }
 
@@ -126,11 +134,17 @@ class ShowdownRepository(
     /** Shows battle [roomId]; doesn't leave or forfeit any other. */
     fun selectRoom(roomId: String) = sessionManager.selectRoom(roomId)
 
-    /** Searches the ladder for [formatId] without a team (random formats). */
-    suspend fun startSearch(formatId: String) {
-        client.useTeam(packedTeam = null)
-        client.search(formatId)
+    /** Searches the ladder for [format]. Ignored unless logged in, since Showdown refuses guests. */
+    suspend fun startSearch(format: BattleFormat) {
+        if (_loginState.value !is LoginState.LoggedIn) {
+            logger.warning { "Ignoring search for ${format.id}: not logged in" }
+            return
+        }
+        matchmaker.start(format)
     }
+
+    /** Stops the ladder search, if any. */
+    suspend fun cancelSearch() = matchmaker.cancel()
 
     private companion object {
         val logger: Logger = Logger.getLogger(ShowdownRepository::class.java.name)

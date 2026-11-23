@@ -50,3 +50,14 @@ GET http://127.0.0.1:<port>/json            -> webSocketDebuggerUrl
 Runtime.evaluate over that WebSocket         -> run JS / inject CSS in the page
 ```
 Needs `WebView.setWebContentsDebuggingEnabled(true)` (debug builds only).
+
+## Found later, in the #4 manual test
+
+- **`onPageFinished` is unusable for injection:** in one real battle the page's load event came
+  ~52 s after navigation (ad scripts), leaving Showdown's move buttons visible and usable until
+  then. The spike's 1.3 s was luck. Fixed by `androidx.webkit` document-start scripts.
+- **Console → logcat:** the web client logs the whole protocol, including our `|request|` (team),
+  to the console, which the WebView copies to logcat. Fixed by swallowing console messages.
+- **User list:** `ul.battle-userlist` ("2 users") floats over the top of the battle; hidden too.
+- **Private room IDs:** some battle room IDs carry a suffix (`battle-…-2718098498-4q0uj…`); the
+  room URL works unchanged.

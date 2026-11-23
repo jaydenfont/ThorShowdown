@@ -161,6 +161,7 @@ sequenceDiagram
   the battle with our side's hidden info.
 - On every page load it injects `assets/webview/battle.js` + `battle.css`: hides the header,
   controls, chat, log, ads and popups, and scales the battle to fill the screen.
+  It runs at document start (`androidx.webkit`), before Showdown's own scripts.
   Long-press a Pokémon for its stats tooltip.
 - Navigation is locked to `https://play.pokemonshowdown.com` (`ShowdownUrls.isAllowed`).
 - Details: [webview.md](webview.md); spike findings: [webview_spike.md](../research/webview_spike.md).

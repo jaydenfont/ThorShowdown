@@ -19,7 +19,9 @@ its stats.
 | What it shows | `TopUiState.battleRoomId` = the session manager's `currentRoomId` while logged in. Null → `about:blank` (drops its connection) and the native idle text. |
 | Changing rooms | Load `https://play.pokemonshowdown.com/<roomId>` (≈1.3 s + ≈2 s WebView re-login). Not Showdown's in-page JS. |
 | Lifetime | One WebView, created with the top screen and kept (`remember`); hidden, not destroyed, when idle. Nothing loads before login. |
-| Injection | On every `onPageFinished`, `evaluateJavascript` of `assets/webview/battle.js`, which adds `assets/webview/battle.css` and scales `.battle` to fit (`min(W / 640, H / 360)`), recomputed on `resize`. |
+| Injection | `assets/webview/battle.js` (which adds `battle.css` and scales `.battle` to `min(W / 640, H / 360)`, recomputed on `resize` and `DOMContentLoaded`) is registered with `androidx.webkit`'s `WebViewCompat.addDocumentStartJavaScript` for the web client origin, so it runs **before Showdown's own scripts** on every page and its controls never appear unstyled. Fallback when unsupported: `evaluateJavascript` on `onPageCommitVisible`. **Not** `onPageFinished`: found live that the load event can come ~52 s late while ads load, leaving Showdown's move buttons usable. |
+| Console | A `WebChromeClient` swallows console messages: Showdown logs the whole protocol (our team) to the console, which would otherwise reach logcat. DevTools still sees them in debug builds. |
+| Dependency | `androidx.webkit` 1.12.1 (approved), for document-start scripts. |
 | Hidden | Header and tabs, `.battle-controls`, chat and log, ads, Showdown popups and overlays (the app shows server popups itself, #11). |
 | Interaction | Long press for tooltips (Showdown's touch behaviour); #4's "tap" wording to be updated. |
 | Navigation lock | `shouldOverrideUrlLoading` allows only `https://play.pokemonshowdown.com`. Everything else is blocked and logged. |

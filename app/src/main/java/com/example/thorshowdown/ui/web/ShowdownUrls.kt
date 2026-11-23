@@ -7,7 +7,10 @@ import java.net.URISyntaxException
 object ShowdownUrls {
     private const val SCHEME = "https"
     private const val HOST = "play.pokemonshowdown.com"
-    private const val WEB_CLIENT = "$SCHEME://$HOST/"
+
+    /** The web client's origin: the only one the WebView may open or inject into. */
+    const val ORIGIN = "$SCHEME://$HOST"
+    private const val WEB_CLIENT = "$ORIGIN/"
 
     /** Shown when there's no battle; loading it also drops the page's Showdown connection. */
     const val BLANK = "about:blank"

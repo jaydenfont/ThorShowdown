@@ -3,6 +3,8 @@ package com.example.thorshowdown.ui.web
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.pm.ApplicationInfo
+import android.webkit.ConsoleMessage
+import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -12,6 +14,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.webkit.WebViewCompat
+import androidx.webkit.WebViewFeature
 import org.json.JSONObject
 import java.util.logging.Logger
 
@@ -52,11 +56,30 @@ private fun WebView.show(url: String) {
 @SuppressLint("SetJavaScriptEnabled")
 private fun createBattleWebView(context: Context): WebView {
     WebView.setWebContentsDebuggingEnabled(context.isDebuggable())
+    val script = installScript(context)
     return WebView(context).apply {
         settings.javaScriptEnabled = true
         settings.domStorageEnabled = true
-        webViewClient = BattleWebViewClient(installScript(context))
+        webChromeClient = SilentConsoleChromeClient()
+        webViewClient = BattleWebViewClient(injectOnCommit = script.takeUnless { injectAtDocumentStart(this, it) })
     }
+}
+
+/**
+ * Runs [script] before Showdown's own scripts on every web client page, so its controls never
+ * show unstyled. Returns false when this WebView can't, and the caller injects on commit instead.
+ * (The page's load event can come a minute late while ads load, so it can't be used.)
+ */
+private fun injectAtDocumentStart(
+    webView: WebView,
+    script: String,
+): Boolean {
+    if (!WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT)) {
+        logger.warning("Document-start scripts unsupported; injecting when each page is first drawn")
+        return false
+    }
+    WebViewCompat.addDocumentStartJavaScript(webView, script, setOf(ShowdownUrls.ORIGIN))
+    return true
 }
 
 /** battle.js followed by a call that installs battle.css. */
@@ -70,9 +93,12 @@ private fun Context.readAsset(path: String): String = assets.open(path).buffered
 
 private fun Context.isDebuggable(): Boolean = applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0
 
-/** Keeps the WebView on the Showdown web client and styles every page it finishes loading. */
+/**
+ * Keeps the WebView on the Showdown web client. When document-start scripts aren't available,
+ * [injectOnCommit] is run as soon as each page is first drawn.
+ */
 private class BattleWebViewClient(
-    private val installScript: String,
+    private val injectOnCommit: String?,
 ) : WebViewClient() {
     override fun shouldOverrideUrlLoading(
         view: WebView,
@@ -84,10 +110,16 @@ private class BattleWebViewClient(
         return !allowed
     }
 
-    override fun onPageFinished(
+    override fun onPageCommitVisible(
         view: WebView,
         url: String,
     ) {
-        if (ShowdownUrls.isAllowed(url)) view.evaluateJavascript(installScript, null)
+        logger.info { "Page visible: $url" }
+        if (injectOnCommit != null && ShowdownUrls.isAllowed(url)) view.evaluateJavascript(injectOnCommit, null)
     }
+}
+
+/** Showdown logs the whole protocol (our team included) to the console; keep it out of logcat. */
+private class SilentConsoleChromeClient : WebChromeClient() {
+    override fun onConsoleMessage(consoleMessage: ConsoleMessage): Boolean = true
 }

@@ -20,12 +20,16 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -33,12 +37,18 @@ import androidx.compose.ui.unit.dp
 import com.example.thorshowdown.R
 import com.example.thorshowdown.data.BattleResult
 import com.example.thorshowdown.showdown.Status
+import kotlinx.coroutines.delay
+import kotlin.time.Duration.Companion.seconds
 
 private val SCREEN_PADDING = 12.dp
 private val ITEM_SPACING = 8.dp
 private val CARD_PADDING = 8.dp
 private const val MOVES_PER_ROW = 2
 private const val MOVE_LIST_SEPARATOR = ", "
+private val TICK = 1.seconds
+private const val LOW_TIME_SECONDS = 30
+private const val SECONDS_PER_MINUTE = 60
+private const val CLOCK_FORMAT = "%d:%02d"
 
 /** Bottom-screen battle menu (#7, functional pass): moves, Tera, party, switching, undo, forfeit. */
 @Composable
@@ -54,7 +64,7 @@ fun BattleScreen(
         verticalArrangement = Arrangement.spacedBy(ITEM_SPACING),
     ) {
         Header(state, onStartTimer = { onAction(UserAction.StartTimer) })
-        state.timerMessage?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
+        state.timer?.let { TimerCountdown(it, turn = state.turn) }
         state.error?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
         when {
             state.phase == BattlePhase.Finished -> Finished(state, onAction)
@@ -296,3 +306,36 @@ private fun statusText(status: Status): String =
         Status.Poison -> stringResource(R.string.status_psn)
         Status.Toxic -> stringResource(R.string.status_tox)
     }
+
+/**
+ * The battle timer, counted down once a second from the server's latest reading while it's our turn
+ * to choose, frozen while we wait. Restarts whenever a new reading arrives or the turn changes.
+ */
+@Composable
+private fun TimerCountdown(
+    timer: BattleTimer,
+    turn: Int,
+) {
+    val reading = timer.timeLeft
+    if (reading == null) {
+        Text(stringResource(R.string.battle_timer_on), style = MaterialTheme.typography.bodyMedium)
+        return
+    }
+    var elapsedSeconds by remember(reading, turn) { mutableIntStateOf(0) }
+    LaunchedEffect(reading, turn, timer.ticking) {
+        while (timer.ticking) {
+            delay(TICK)
+            elapsedSeconds++
+        }
+    }
+    val shown = countdown(reading, elapsedSeconds)
+    val color = if (shown.turnSeconds <= LOW_TIME_SECONDS) MaterialTheme.colorScheme.error else Color.Unspecified
+    Text(
+        stringResource(R.string.battle_timer, clock(shown.turnSeconds), clock(shown.totalSeconds)),
+        color = color,
+        style = MaterialTheme.typography.bodyMedium,
+    )
+}
+
+/** Seconds as m:ss. */
+private fun clock(seconds: Int): String = CLOCK_FORMAT.format(seconds / SECONDS_PER_MINUTE, seconds % SECONDS_PER_MINUTE)

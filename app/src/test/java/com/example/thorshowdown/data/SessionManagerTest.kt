@@ -8,6 +8,7 @@ import com.example.thorshowdown.showdown.NotConnectedException
 import com.example.thorshowdown.showdown.RoomType
 import com.example.thorshowdown.showdown.ShowdownEvent
 import com.example.thorshowdown.showdown.Side
+import com.example.thorshowdown.showdown.TimeLeft
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -472,7 +473,7 @@ class SessionManagerTest {
         }
 
     @Test
-    fun SessionManager_ServerSaysTimerRunning_TimerIsOnWithLatestMessage() {
+    fun SessionManager_ServerSaysTimeLeft_TimerIsOnWithParsedTimeLeft() {
         startBattles(BATTLE_1)
         sessions.handle(ShowdownEvent.Inactive(BATTLE_1, TIMER_ON_MESSAGE))
 
@@ -482,11 +483,11 @@ class SessionManagerTest {
             sessions.state.value.sessions
                 .getValue(BATTLE_1)
         assertTrue(session.timerOn)
-        assertEquals(TIME_LEFT_MESSAGE, session.timerMessage)
+        assertEquals(TimeLeft(turnSeconds = 120, totalSeconds = 240), session.timeLeft)
     }
 
     @Test
-    fun SessionManager_ServerTurnsTimerOff_TimerIsOffWithoutMessage() {
+    fun SessionManager_ServerTurnsTimerOff_TimerIsOffWithoutTimeLeft() {
         startBattles(BATTLE_1)
         sessions.handle(ShowdownEvent.Inactive(BATTLE_1, TIMER_ON_MESSAGE))
 
@@ -496,7 +497,22 @@ class SessionManagerTest {
             sessions.state.value.sessions
                 .getValue(BATTLE_1)
         assertFalse(session.timerOn)
-        assertNull(session.timerMessage)
+        assertNull(session.timeLeft)
+    }
+
+    @Test
+    fun SessionManager_OpponentTimeWarning_KeepsOurTimeLeft() {
+        startBattles(BATTLE_1)
+        sessions.handle(ShowdownEvent.Inactive(BATTLE_1, TIME_LEFT_MESSAGE))
+
+        sessions.handle(ShowdownEvent.Inactive(BATTLE_1, OPPONENT_WARNING))
+
+        assertEquals(
+            TimeLeft(turnSeconds = 120, totalSeconds = 240),
+            sessions.state.value.sessions
+                .getValue(BATTLE_1)
+                .timeLeft,
+        )
     }
 
     @Test
@@ -542,7 +558,8 @@ class SessionManagerTest {
         const val RAW_JSON = "{}"
         const val SOCKET_CLOSED = "socket closed"
         const val TIMER_ON_MESSAGE = "Battle timer is ON: inactive players will automatically lose when time's up."
-        const val TIME_LEFT_MESSAGE = "You have 120 seconds to make your decision."
+        const val TIME_LEFT_MESSAGE = "Time left: 120 sec this turn | 240 sec total"
+        const val OPPONENT_WARNING = "Bob has 60 seconds left."
         const val TIMER_OFF_MESSAGE = "Battle timer is now OFF."
         const val INVALID_CHOICE = "[Invalid choice] Can't move: Gengar's Shadow Ball is disabled"
     }

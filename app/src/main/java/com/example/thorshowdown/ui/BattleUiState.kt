@@ -10,6 +10,7 @@ import com.example.thorshowdown.showdown.PokemonDetails
 import com.example.thorshowdown.showdown.SidePokemon
 import com.example.thorshowdown.showdown.Stats
 import com.example.thorshowdown.showdown.Status
+import com.example.thorshowdown.showdown.TimeLeft
 
 /** What the battle menu lets the player do right now. */
 enum class BattlePhase { Choose, MustSwitch, Waiting, Finished }
@@ -27,8 +28,8 @@ data class BattleUiState(
     val canUndo: Boolean,
     /** Whether the Timer button is shown: the timer is off and the battle isn't over. */
     val canStartTimer: Boolean,
-    /** The server's latest timer message while the timer runs. */
-    val timerMessage: String?,
+    /** The battle timer while it runs and the battle isn't over; null otherwise. */
+    val timer: BattleTimer?,
     val result: BattleResult?,
     val error: String?,
 ) {
@@ -47,7 +48,11 @@ data class BattleUiState(
                 party = partyOf(session, phase, trapped = active?.trapped == true),
                 canUndo = session.canUndo,
                 canStartTimer = !session.timerOn && phase != BattlePhase.Finished,
-                timerMessage = session.timerMessage.takeIf { session.timerOn && phase != BattlePhase.Finished },
+                timer =
+                    BattleTimer(session.timeLeft, ticking = session.awaitingChoice).takeIf {
+                        session.timerOn &&
+                            phase != BattlePhase.Finished
+                    },
                 result = session.result,
                 error = session.lastError,
             )
@@ -115,6 +120,25 @@ data class BattleUiState(
         }
     }
 }
+
+/**
+ * The running battle timer. [timeLeft] is the server's latest reading (null until one arrives);
+ * it counts down only while [ticking], i.e. while it's our turn to choose.
+ */
+data class BattleTimer(
+    val timeLeft: TimeLeft?,
+    val ticking: Boolean,
+)
+
+/** [timeLeft] after [elapsedSeconds] of our clock running, never below zero. */
+fun countdown(
+    timeLeft: TimeLeft,
+    elapsedSeconds: Int,
+): TimeLeft =
+    TimeLeft(
+        turnSeconds = (timeLeft.turnSeconds - elapsedSeconds).coerceAtLeast(0),
+        totalSeconds = (timeLeft.totalSeconds - elapsedSeconds).coerceAtLeast(0),
+    )
 
 /** One move button; [slot] is 1-based, as sent in the choice. */
 data class MoveButton(

@@ -6,6 +6,7 @@ import com.example.thorshowdown.showdown.NotConnectedException
 import com.example.thorshowdown.showdown.RoomType
 import com.example.thorshowdown.showdown.ShowdownClient
 import com.example.thorshowdown.showdown.ShowdownEvent
+import com.example.thorshowdown.showdown.TimeLeft
 import com.example.thorshowdown.showdown.toId
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -36,8 +37,8 @@ class SessionManager(
                 updateSession(event.roomId) { it.copy(lastError = event.message, waitingForOpponent = false) }
             is ShowdownEvent.Win -> updateSession(event.roomId) { it.copy(result = resultFor(it, event.winner)) }
             is ShowdownEvent.Tie -> updateSession(event.roomId) { it.copy(result = BattleResult.Tied) }
-            is ShowdownEvent.Inactive -> updateSession(event.roomId) { it.copy(timerOn = true, timerMessage = event.message) }
-            is ShowdownEvent.InactiveOff -> updateSession(event.roomId) { it.copy(timerOn = false, timerMessage = null) }
+            is ShowdownEvent.Inactive -> updateSession(event.roomId) { it.withTimerMessage(event.message) }
+            is ShowdownEvent.InactiveOff -> updateSession(event.roomId) { it.copy(timerOn = false, timeLeft = null) }
             else -> Unit
         }
     }
@@ -150,6 +151,10 @@ class SessionManager(
 
     private fun BattleSession.withRequest(request: BattleRequest): BattleSession =
         copy(request = request, waitingForOpponent = request.wait, lastError = null)
+
+    /** Any `|inactive|` means the timer runs; only `Time left` readings (ours) move the countdown. */
+    private fun BattleSession.withTimerMessage(message: String): BattleSession =
+        copy(timerOn = true, timeLeft = TimeLeft.parse(message) ?: timeLeft)
 
     /** "Us" is the side named in our requests; Showdown compares names by ID. */
     private fun resultFor(

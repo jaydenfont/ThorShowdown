@@ -16,6 +16,7 @@ import com.example.thorshowdown.showdown.Side
 import com.example.thorshowdown.showdown.SidePokemon
 import com.example.thorshowdown.showdown.Stats
 import com.example.thorshowdown.showdown.Status
+import com.example.thorshowdown.showdown.TimeLeft
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -149,23 +150,51 @@ class BattleUiStateTest {
         val state = BattleUiState.from(session(chooseRequest()))
 
         assertTrue(state.canStartTimer)
-        assertEquals(null, state.timerMessage)
+        assertEquals(null, state.timer)
     }
 
     @Test
-    fun BattleUiState_TimerOn_ShowsMessageInsteadOfButton() {
-        val state = BattleUiState.from(session(chooseRequest()).copy(timerOn = true, timerMessage = TIME_LEFT))
+    fun BattleUiState_TimerOnWhileChoosing_ShowsTickingCountdownInsteadOfButton() {
+        val state = BattleUiState.from(session(chooseRequest()).copy(timerOn = true, timeLeft = TIME_LEFT))
 
         assertFalse(state.canStartTimer)
-        assertEquals(TIME_LEFT, state.timerMessage)
+        assertEquals(BattleTimer(TIME_LEFT, ticking = true), state.timer)
+    }
+
+    @Test
+    fun BattleUiState_TimerOnWhileWaiting_CountdownIsFrozen() {
+        val state = BattleUiState.from(session(chooseRequest()).copy(timerOn = true, timeLeft = TIME_LEFT, waitingForOpponent = true))
+
+        assertEquals(BattleTimer(TIME_LEFT, ticking = false), state.timer)
+    }
+
+    @Test
+    fun BattleUiState_TimerOnBeforeFirstTimeLeft_ShowsTimerWithoutCountdown() {
+        val state = BattleUiState.from(session(chooseRequest()).copy(timerOn = true))
+
+        assertEquals(BattleTimer(timeLeft = null, ticking = true), state.timer)
     }
 
     @Test
     fun BattleUiState_BattleOver_HidesTimer() {
-        val state = BattleUiState.from(session(chooseRequest()).copy(result = BattleResult.Lost, timerOn = true, timerMessage = TIME_LEFT))
+        val state = BattleUiState.from(session(chooseRequest()).copy(result = BattleResult.Lost, timerOn = true, timeLeft = TIME_LEFT))
 
         assertFalse(state.canStartTimer)
-        assertEquals(null, state.timerMessage)
+        assertEquals(null, state.timer)
+    }
+
+    @Test
+    fun BattleTimer_CountdownAfterElapsedSeconds_SubtractsFromTurnAndTotal() {
+        val counted = countdown(TimeLeft(turnSeconds = 150, totalSeconds = 240), elapsedSeconds = 20)
+
+        assertEquals(TimeLeft(turnSeconds = 130, totalSeconds = 220), counted)
+    }
+
+    @Test
+    fun BattleTimer_CountdownPastZero_StopsAtZero() {
+        val counted = countdown(TimeLeft(turnSeconds = 10, totalSeconds = 25), elapsedSeconds = 30)
+
+        assertEquals(TimeLeft(turnSeconds = 0, totalSeconds = 0), counted)
     }
 
     @Test
@@ -249,7 +278,7 @@ class BattleUiStateTest {
         const val THUNDERBOLT = "Thunderbolt"
         const val PROTECT = "Protect"
         const val TERA_TYPE = "Fighting"
-        const val TIME_LEFT = "You have 120 seconds to make your decision."
+        val TIME_LEFT = TimeLeft(turnSeconds = 120, totalSeconds = 240)
         const val ERROR = "[Invalid choice] Can't undo"
         val WHIMSICOTT_STATS = Stats(atk = 117, def = 191, spa = 178, spd = 174, spe = 243)
         const val TRANSCRIPT_PATH = "/battles/gen9-singles.txt"

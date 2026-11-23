@@ -1,6 +1,7 @@
 package com.example.thorshowdown.data
 
 import com.example.thorshowdown.showdown.BattleRequest
+import com.example.thorshowdown.showdown.TimeLeft
 
 /** State of one battle room the user is playing in. */
 data class BattleSession(
@@ -18,8 +19,8 @@ data class BattleSession(
     val result: BattleResult? = null,
     /** Whether the battle timer is running, per the server's `|inactive|` / `|inactiveoff|`. */
     val timerOn: Boolean = false,
-    /** The latest `|inactive|` message, e.g. the time left; null while the timer is off. */
-    val timerMessage: String? = null,
+    /** Our clock from the latest `Time left` message; null until one arrives and while the timer is off. */
+    val timeLeft: TimeLeft? = null,
 ) {
     /** Whether the player has a choice to make right now. */
     val awaitingChoice: Boolean

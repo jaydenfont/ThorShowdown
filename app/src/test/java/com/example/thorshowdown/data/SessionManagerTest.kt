@@ -456,6 +456,64 @@ class SessionManagerTest {
             assertNotNull(session.lastError)
         }
 
+    @Test
+    fun SessionManager_StartTimer_SendsTimerOnButWaitsForServer() =
+        runTest {
+            startBattles(BATTLE_1)
+
+            sessions.startTimer(BATTLE_1)
+
+            assertEquals(listOf(RoomCommand.StartTimer(BATTLE_1)), client.roomCommands)
+            assertFalse(
+                sessions.state.value.sessions
+                    .getValue(BATTLE_1)
+                    .timerOn,
+            )
+        }
+
+    @Test
+    fun SessionManager_ServerSaysTimerRunning_TimerIsOnWithLatestMessage() {
+        startBattles(BATTLE_1)
+        sessions.handle(ShowdownEvent.Inactive(BATTLE_1, TIMER_ON_MESSAGE))
+
+        sessions.handle(ShowdownEvent.Inactive(BATTLE_1, TIME_LEFT_MESSAGE))
+
+        val session =
+            sessions.state.value.sessions
+                .getValue(BATTLE_1)
+        assertTrue(session.timerOn)
+        assertEquals(TIME_LEFT_MESSAGE, session.timerMessage)
+    }
+
+    @Test
+    fun SessionManager_ServerTurnsTimerOff_TimerIsOffWithoutMessage() {
+        startBattles(BATTLE_1)
+        sessions.handle(ShowdownEvent.Inactive(BATTLE_1, TIMER_ON_MESSAGE))
+
+        sessions.handle(ShowdownEvent.InactiveOff(BATTLE_1, TIMER_OFF_MESSAGE))
+
+        val session =
+            sessions.state.value.sessions
+                .getValue(BATTLE_1)
+        assertFalse(session.timerOn)
+        assertNull(session.timerMessage)
+    }
+
+    @Test
+    fun SessionManager_StartTimerSendFails_ShowsError() =
+        runTest {
+            startBattles(BATTLE_1)
+            client.commandFailure = IOException(SOCKET_CLOSED)
+
+            sessions.startTimer(BATTLE_1)
+
+            assertNotNull(
+                sessions.state.value.sessions
+                    .getValue(BATTLE_1)
+                    .lastError,
+            )
+        }
+
     private fun requestEvent(
         roomId: String,
         rqid: Int,
@@ -483,6 +541,9 @@ class SessionManagerTest {
         const val SIDE_ID = "p1"
         const val RAW_JSON = "{}"
         const val SOCKET_CLOSED = "socket closed"
+        const val TIMER_ON_MESSAGE = "Battle timer is ON: inactive players will automatically lose when time's up."
+        const val TIME_LEFT_MESSAGE = "You have 120 seconds to make your decision."
+        const val TIMER_OFF_MESSAGE = "Battle timer is now OFF."
         const val INVALID_CHOICE = "[Invalid choice] Can't move: Gengar's Shadow Ball is disabled"
     }
 }

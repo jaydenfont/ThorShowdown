@@ -24,10 +24,11 @@ is current, so the top screen (#4) and bottom screen (#7) always show the same b
 | Fallback | When the current room is removed, the most recently created remaining session becomes current, or null if none. |
 | Choice guard | `chooseMove` / `switchTo` send only when the session has a request awaiting a choice (not `wait`, not already chosen). Otherwise logged and ignored. Move legality is left to the server and #7's UI. `forfeit` / `leave` always send. |
 | Send failures | Client `IOException` / `NotConnectedException` are caught, logged and shown as `lastError`; the session isn't marked as waiting. Reconnect is #12. |
+| Timer (#7) | `startTimer(roomId)` sends `/timer on`. `Inactive` sets `timerOn` and keeps the latest message (time left); `InactiveOff` clears both. The server decides; the button doesn't flip state. |
 | Result | `Won` / `Lost` / `Tied`. "Us" is `request.side.name`, compared as a Showdown ID. |
 | WebView | Only room IDs and session state are exposed; the WebView object is never held here (#4 observes `currentRoomId`). |
 | State | One `StateFlow<SessionsState>` holding both the sessions and `currentRoomId`, so they can never be seen out of step. Updates use atomic `update {}`. |
-| Out of scope | ViewModel/UI (#7, #4, #10), battle log and `|inactive|` timer (#7), reconnect/rejoin (#12): `Disconnected` leaves sessions alone. |
+| Out of scope | ViewModel/UI (#7, #4, #10), battle log (#7), reconnect/rejoin (#12): `Disconnected` leaves sessions alone. |
 
 ## Architecture
 

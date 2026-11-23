@@ -53,7 +53,8 @@ fun BattleScreen(
         modifier = Modifier.fillMaxSize().padding(SCREEN_PADDING),
         verticalArrangement = Arrangement.spacedBy(ITEM_SPACING),
     ) {
-        Header(state)
+        Header(state, onStartTimer = { onAction(UserAction.StartTimer) })
+        state.timerMessage?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
         state.error?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
         when {
             state.phase == BattlePhase.Finished -> Finished(state, onAction)
@@ -81,7 +82,10 @@ fun BattleScreen(
 }
 
 @Composable
-private fun Header(state: BattleUiState) {
+private fun Header(
+    state: BattleUiState,
+    onStartTimer: () -> Unit,
+) {
     Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Text(
             state.title ?: stringResource(R.string.battle_untitled),
@@ -90,6 +94,9 @@ private fun Header(state: BattleUiState) {
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
+        if (state.canStartTimer) {
+            TextButton(onClick = onStartTimer) { Text(stringResource(R.string.battle_start_timer)) }
+        }
         if (state.turn > 0) Text(stringResource(R.string.battle_turn, state.turn), style = MaterialTheme.typography.titleSmall)
     }
 }

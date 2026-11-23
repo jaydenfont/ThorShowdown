@@ -131,6 +131,9 @@ class ShowdownRepository(
         slot: Int,
     ) = sessionManager.switchTo(roomId, slot)
 
+    /** Turns on the battle timer in [roomId]. */
+    suspend fun startTimer(roomId: String) = sessionManager.startTimer(roomId)
+
     /** Takes back the choice sent in battle [roomId], if it can still be taken back. */
     suspend fun undo(roomId: String) = sessionManager.undo(roomId)
 

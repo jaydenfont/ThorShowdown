@@ -126,6 +126,17 @@ class GameViewModelBattleTest {
         }
 
     @Test
+    fun GameViewModel_StartTimer_SendsTimerOnToCurrentBattle() =
+        runTest {
+            val viewModel = loggedInViewModel()
+            startBattle()
+
+            viewModel.onAction(UserAction.StartTimer)
+
+            assertEquals(listOf(RoomCommand.StartTimer(BATTLE_1)), client.roomCommands)
+        }
+
+    @Test
     fun GameViewModel_ChooseMoveWithoutBattle_SendsNothing() {
         val viewModel = loggedInViewModel()
 

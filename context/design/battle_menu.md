@@ -1,7 +1,7 @@
 # Bottom-Screen Battle Menu
 
 Design for the first pass of [#7 Bottom Screen Battle Functionality](https://github.com/jaydenfont/ThorShowdown/issues/7):
-move selection (with Tera), party viewing, switching, undo, and forfeit.
+move selection (with Tera), party viewing, switching, undo, forfeit, and the battle timer.
 Where it fits: [architecture.md](architecture.md). Sessions and commands: [session_manager.md](session_manager.md).
 
 ## Purpose
@@ -14,7 +14,7 @@ While a battle is current, the bottom screen becomes the battle menu: it shows w
 
 | Topic | Decision |
 |---|---|
-| Scope | **In:** move grid (name, PP, disabled), Tera toggle, party view (all 6 with details), switching, forced switch, undo, forfeit (confirmed), waiting state, result + Leave, `lastError`. **Later in #7:** battle log, DS styling, move type/power, opponent team, turn timer. Team preview not needed (Random Battle). Gamepad is #9. |
+| Scope | **In:** move grid (name, PP, disabled), Tera toggle, party view (all 6 with details), switching, forced switch, undo, forfeit (confirmed), waiting state, result + Leave, `lastError`. **Later in #7:** battle log, DS styling, move type/power, display names for items, abilities and moves (the request only has IDs), opponent team, turn timer. Team preview not needed (Random Battle). Gamepad is #9. |
 | When shown | `BottomUiState.battle` is non-null while a battle is current; the bottom screen shows the battle menu instead of the lobby. The search control is hidden during a battle (the data layer still allows it; rooms UI is #8). |
 | Replaces the #10 battle card | The lobby's `BattleCard` (title, result, Leave) is superseded by the battle menu's header and Finished phase, so it's removed. **Its two ViewModel tests are replaced** by `BattleUiState` tests covering the same behaviour (title shown, result shown). |
 | Phase | `Finished` if `result != null`; else `Waiting` if no request yet, `request.wait`, or a choice was sent; else `MustSwitch` if any `forceSwitch`; else `Choose`. |
@@ -23,6 +23,7 @@ While a battle is current, the bottom screen becomes the battle menu: it shows w
 | Party | `side.pokemon` in request order (switch slots are 1-based in this order). Each shows species, level, gender, HP, status, active / fainted, item, ability, Tera type, stats, moves. Viewable in every phase. |
 | Switch allowed | In `Choose` or `MustSwitch`, not fainted, not active, and (in `Choose`) not `trapped`. |
 | Undo | `SessionManager.undo(roomId)` sends `/choose undo` with the current rqid when a choice was sent and the battle isn't over, then clears `waitingForOpponent` so the menu is back in `Choose`/`MustSwitch`. If the turn already ran, the server answers `|error|`, which is shown as `lastError` (existing handling); the next `|request|` follows. Shown as **Cancel** in the Waiting phase. |
+| Timer | A **Timer** button in the header turns the battle timer on (`StartTimer` → `/timer on`); turn-on only. Once the server's `|inactive|` arrives the button is replaced by its latest message (time left) in red. Hidden when the battle is over. |
 | Forfeit | Button with a "Forfeit this battle?" confirm → `forfeit(roomId)`. The server's `|win|` then moves the menu to `Finished`, where **Leave** (`LeaveBattle`) closes the room. |
 | Actions | `ChooseMove(slot, terastallize)`, `SwitchTo(slot)`, `UndoChoice`, `Forfeit`, plus the existing `LeaveBattle(roomId)`. The ViewModel targets the current room; ignored (logged) if there is none. |
 | Protocol parsing | `:showdown-client` gains `PokemonDetails.parse` (`"Eelektross, L87, M"` → species, level, gender) and `PokemonCondition.parse` (`"120/300 brn"`, `"0 fnt"` → HP, max HP, `Status`, fainted). `:app` never splits protocol strings. |

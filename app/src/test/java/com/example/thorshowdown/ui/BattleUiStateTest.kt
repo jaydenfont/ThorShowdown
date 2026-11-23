@@ -145,6 +145,30 @@ class BattleUiStateTest {
     }
 
     @Test
+    fun BattleUiState_TimerOff_CanStartTimer() {
+        val state = BattleUiState.from(session(chooseRequest()))
+
+        assertTrue(state.canStartTimer)
+        assertEquals(null, state.timerMessage)
+    }
+
+    @Test
+    fun BattleUiState_TimerOn_ShowsMessageInsteadOfButton() {
+        val state = BattleUiState.from(session(chooseRequest()).copy(timerOn = true, timerMessage = TIME_LEFT))
+
+        assertFalse(state.canStartTimer)
+        assertEquals(TIME_LEFT, state.timerMessage)
+    }
+
+    @Test
+    fun BattleUiState_BattleOver_HidesTimer() {
+        val state = BattleUiState.from(session(chooseRequest()).copy(result = BattleResult.Lost, timerOn = true, timerMessage = TIME_LEFT))
+
+        assertFalse(state.canStartTimer)
+        assertEquals(null, state.timerMessage)
+    }
+
+    @Test
     fun BattleUiState_ErrorAndTurn_ArePassedThrough() {
         val state = BattleUiState.from(session(chooseRequest()).copy(turn = 4, lastError = ERROR))
 
@@ -225,6 +249,7 @@ class BattleUiStateTest {
         const val THUNDERBOLT = "Thunderbolt"
         const val PROTECT = "Protect"
         const val TERA_TYPE = "Fighting"
+        const val TIME_LEFT = "You have 120 seconds to make your decision."
         const val ERROR = "[Invalid choice] Can't undo"
         val WHIMSICOTT_STATS = Stats(atk = 117, def = 191, spa = 178, spd = 174, spe = 243)
         const val TRANSCRIPT_PATH = "/battles/gen9-singles.txt"

@@ -25,6 +25,10 @@ data class BattleUiState(
     val teraType: String?,
     val party: List<PartyMember>,
     val canUndo: Boolean,
+    /** Whether the Timer button is shown: the timer is off and the battle isn't over. */
+    val canStartTimer: Boolean,
+    /** The server's latest timer message while the timer runs. */
+    val timerMessage: String?,
     val result: BattleResult?,
     val error: String?,
 ) {
@@ -42,6 +46,8 @@ data class BattleUiState(
                 teraType = active?.canTerastallize.takeIf { phase == BattlePhase.Choose },
                 party = partyOf(session, phase, trapped = active?.trapped == true),
                 canUndo = session.canUndo,
+                canStartTimer = !session.timerOn && phase != BattlePhase.Finished,
+                timerMessage = session.timerMessage.takeIf { session.timerOn && phase != BattlePhase.Finished },
                 result = session.result,
                 error = session.lastError,
             )

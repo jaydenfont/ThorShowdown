@@ -16,6 +16,10 @@ data class BattleSession(
     val lastError: String? = null,
     /** Set once the battle has ended. The session stays until the player leaves. */
     val result: BattleResult? = null,
+    /** Whether the battle timer is running, per the server's `|inactive|` / `|inactiveoff|`. */
+    val timerOn: Boolean = false,
+    /** The latest `|inactive|` message, e.g. the time left; null while the timer is off. */
+    val timerMessage: String? = null,
 ) {
     /** Whether the player has a choice to make right now. */
     val awaitingChoice: Boolean

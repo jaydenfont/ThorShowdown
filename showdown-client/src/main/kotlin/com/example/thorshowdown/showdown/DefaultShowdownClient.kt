@@ -127,6 +127,8 @@ public class DefaultShowdownClient(
 
     override suspend fun forfeit(roomId: String): Unit = send(Commands.forfeit(roomId))
 
+    override suspend fun startTimer(roomId: String): Unit = send(Commands.startTimer(roomId))
+
     private suspend fun send(message: String) {
         if (!connected) throw NotConnectedException()
         logger.fine { "Sending ${Commands.redactedForLog(message)}" }

@@ -86,6 +86,8 @@ class FakeShowdownClient(
 
     override suspend fun forfeit(roomId: String) = record(RoomCommand.Forfeit(roomId))
 
+    override suspend fun startTimer(roomId: String) = record(RoomCommand.StartTimer(roomId))
+
     private fun record(command: RoomCommand) {
         commandFailure?.let { throw it }
         roomCommands += command
@@ -113,6 +115,10 @@ class FakeShowdownClient(
         ) : RoomCommand
 
         data class Leave(
+            val roomId: String,
+        ) : RoomCommand
+
+        data class StartTimer(
             val roomId: String,
         ) : RoomCommand
     }

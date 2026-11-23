@@ -51,4 +51,7 @@ public interface ShowdownClient {
 
     /** Forfeits the battle in [roomId]. */
     public suspend fun forfeit(roomId: String)
+
+    /** Turns on the battle timer in [roomId]; the server confirms with [ShowdownEvent.Inactive]. */
+    public suspend fun startTimer(roomId: String)
 }

@@ -36,6 +36,8 @@ class SessionManager(
                 updateSession(event.roomId) { it.copy(lastError = event.message, waitingForOpponent = false) }
             is ShowdownEvent.Win -> updateSession(event.roomId) { it.copy(result = resultFor(it, event.winner)) }
             is ShowdownEvent.Tie -> updateSession(event.roomId) { it.copy(result = BattleResult.Tied) }
+            is ShowdownEvent.Inactive -> updateSession(event.roomId) { it.copy(timerOn = true, timerMessage = event.message) }
+            is ShowdownEvent.InactiveOff -> updateSession(event.roomId) { it.copy(timerOn = false, timerMessage = null) }
             else -> Unit
         }
     }
@@ -77,6 +79,11 @@ class SessionManager(
         }
         val sent = send(roomId) { client.choose(roomId, Choice.Undo, session.request?.rqid) }
         if (sent) updateSession(roomId) { it.copy(waitingForOpponent = false) }
+    }
+
+    /** Asks the server to turn the battle timer on; [BattleSession.timerOn] follows its `|inactive|`. */
+    suspend fun startTimer(roomId: String) {
+        send(roomId) { client.startTimer(roomId) }
     }
 
     suspend fun forfeit(roomId: String) {

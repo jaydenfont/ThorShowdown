@@ -75,6 +75,9 @@ sealed interface UserAction {
 
     /** Forfeit the current battle (it stays open to show the result). */
     data object Forfeit : UserAction
+
+    /** Turn on the battle timer in the current battle. */
+    data object StartTimer : UserAction
 }
 
 /** Shared by both displays. Turns repository state into per-screen UI state. */
@@ -120,6 +123,7 @@ class GameViewModel(
             is UserAction.SwitchTo -> inCurrentBattle { repository.switchTo(it, action.slot) }
             UserAction.UndoChoice -> inCurrentBattle { repository.undo(it) }
             UserAction.Forfeit -> inCurrentBattle { repository.forfeit(it) }
+            UserAction.StartTimer -> inCurrentBattle { repository.startTimer(it) }
         }
     }
 

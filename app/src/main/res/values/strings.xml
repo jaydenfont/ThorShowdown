@@ -36,6 +36,7 @@
     <string name="battle_party">Party</string>
     <string name="battle_back">Back</string>
     <string name="battle_forfeit">Forfeit</string>
+    <string name="battle_start_timer">Timer</string>
     <string name="battle_waiting">Waiting for your opponent…</string>
     <string name="battle_starting">Waiting for the battle to start…</string>
     <string name="battle_undo">Cancel choice</string>

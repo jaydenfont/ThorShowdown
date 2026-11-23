@@ -1,7 +1,6 @@
 package com.example.thorshowdown.ui
 
 import com.example.thorshowdown.data.BattleFormat
-import com.example.thorshowdown.data.BattleResult
 import com.example.thorshowdown.data.SearchState
 import com.example.thorshowdown.data.ShowdownRepository
 import com.example.thorshowdown.data.local.LocalDataSource
@@ -11,10 +10,8 @@ import com.example.thorshowdown.fakes.FakeShowdownClient.RoomCommand
 import com.example.thorshowdown.fakes.FakeShowdownClient.SearchCommand
 import com.example.thorshowdown.fakes.FakeWebSession
 import com.example.thorshowdown.fakes.MainDispatcherRule
-import com.example.thorshowdown.showdown.BattleRequest
 import com.example.thorshowdown.showdown.RoomType
 import com.example.thorshowdown.showdown.ShowdownEvent
-import com.example.thorshowdown.showdown.Side
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -50,7 +47,7 @@ class GameViewModelLobbyTest {
     fun GameViewModel_LoggedIn_ShowsIdleLobbyWithoutBattle() {
         val viewModel = loggedInViewModel()
 
-        assertEquals(LobbyUiState(search = SearchState.Idle(), battle = null), viewModel.bottomState.value.lobby)
+        assertEquals(LobbyUiState(search = SearchState.Idle()), viewModel.bottomState.value.lobby)
     }
 
     @Test
@@ -81,37 +78,6 @@ class GameViewModelLobbyTest {
                 ?.search,
         )
     }
-
-    @Test
-    fun GameViewModel_BattleStarts_ShowsBattleCardWithTitle() =
-        runTest {
-            val viewModel = loggedInViewModel()
-
-            startBattle()
-
-            assertEquals(
-                BattleCard(BATTLE_1, BATTLE_TITLE, result = null),
-                viewModel.bottomState.value.lobby
-                    ?.battle,
-            )
-        }
-
-    @Test
-    fun GameViewModel_BattleWon_BattleCardShowsResult() =
-        runTest {
-            val viewModel = loggedInViewModel()
-            startBattle()
-            client.emit(ShowdownEvent.Request(BATTLE_1, BattleRequest(side = Side(FakeShowdownClient.USERNAME, SIDE_ID)), RAW_JSON))
-
-            client.emit(ShowdownEvent.Win(BATTLE_1, FakeShowdownClient.USERNAME))
-
-            assertEquals(
-                BattleResult.Won,
-                viewModel.bottomState.value.lobby
-                    ?.battle
-                    ?.result,
-            )
-        }
 
     @Test
     fun GameViewModel_LeaveUnfinishedBattle_ForfeitsThenLeaves() =

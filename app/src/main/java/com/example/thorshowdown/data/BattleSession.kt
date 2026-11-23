@@ -20,6 +20,10 @@ data class BattleSession(
     /** Whether the player has a choice to make right now. */
     val awaitingChoice: Boolean
         get() = request != null && !request.wait && !waitingForOpponent && result == null
+
+    /** Whether a choice was sent for the current request and can still be taken back. */
+    val canUndo: Boolean
+        get() = request != null && !request.wait && waitingForOpponent && result == null
 }
 
 /** How a battle ended, from this player's point of view. */

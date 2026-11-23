@@ -131,6 +131,9 @@ class ShowdownRepository(
         slot: Int,
     ) = sessionManager.switchTo(roomId, slot)
 
+    /** Takes back the choice sent in battle [roomId], if it can still be taken back. */
+    suspend fun undo(roomId: String) = sessionManager.undo(roomId)
+
     suspend fun forfeit(roomId: String) = sessionManager.forfeit(roomId)
 
     /** Leaves battle [roomId], forfeiting it first if it isn't over. */

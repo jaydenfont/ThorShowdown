@@ -65,6 +65,20 @@ class SessionManager(
         slot: Int,
     ) = choose(roomId, Choice.Switch(slot))
 
+    /**
+     * Takes back the choice sent for the current request, so the player can choose again.
+     * If the turn already ran, the server answers `|error|`, which shows as [BattleSession.lastError].
+     */
+    suspend fun undo(roomId: String) {
+        val session = mutableState.value.sessions[roomId]
+        if (session == null || !session.canUndo) {
+            logger.info { "Ignoring undo in $roomId: no choice to take back" }
+            return
+        }
+        val sent = send(roomId) { client.choose(roomId, Choice.Undo, session.request?.rqid) }
+        if (sent) updateSession(roomId) { it.copy(waitingForOpponent = false) }
+    }
+
     suspend fun forfeit(roomId: String) {
         send(roomId) { client.forfeit(roomId) }
     }

@@ -373,6 +373,89 @@ class SessionManagerTest {
         assertEquals(BATTLE_1, sessions.state.value.currentRoomId)
     }
 
+    @Test
+    fun SessionManager_UndoAfterChoosing_SendsUndoWithRqidAndAwaitsChoiceAgain() =
+        runTest {
+            startBattles(BATTLE_1)
+            sessions.handle(requestEvent(BATTLE_1, rqid = 7))
+            sessions.chooseMove(BATTLE_1, slot = 1, terastallize = false)
+
+            sessions.undo(BATTLE_1)
+
+            assertEquals(RoomCommand.Choose(BATTLE_1, Choice.Undo, 7), client.roomCommands.last())
+            assertTrue(
+                sessions.state.value.sessions
+                    .getValue(BATTLE_1)
+                    .awaitingChoice,
+            )
+        }
+
+    @Test
+    fun SessionManager_UndoThenChooseAgain_SendsNewChoice() =
+        runTest {
+            startBattles(BATTLE_1)
+            sessions.handle(requestEvent(BATTLE_1, rqid = 7))
+            sessions.chooseMove(BATTLE_1, slot = 1, terastallize = false)
+            sessions.undo(BATTLE_1)
+
+            sessions.switchTo(BATTLE_1, slot = 3)
+
+            assertEquals(RoomCommand.Choose(BATTLE_1, Choice.Switch(3), 7), client.roomCommands.last())
+        }
+
+    @Test
+    fun SessionManager_UndoWithoutChoice_SendsNothing() =
+        runTest {
+            startBattles(BATTLE_1)
+            sessions.handle(requestEvent(BATTLE_1, rqid = 7))
+
+            sessions.undo(BATTLE_1)
+
+            assertEquals(emptyList<RoomCommand>(), client.roomCommands)
+        }
+
+    @Test
+    fun SessionManager_UndoWhileServerSaysWait_SendsNothing() =
+        runTest {
+            startBattles(BATTLE_1)
+            sessions.handle(requestEvent(BATTLE_1, rqid = 7, wait = true))
+
+            sessions.undo(BATTLE_1)
+
+            assertEquals(emptyList<RoomCommand>(), client.roomCommands)
+        }
+
+    @Test
+    fun SessionManager_UndoAfterBattleEnded_SendsNothing() =
+        runTest {
+            startBattles(BATTLE_1)
+            sessions.handle(requestEvent(BATTLE_1, rqid = 7))
+            sessions.chooseMove(BATTLE_1, slot = 1, terastallize = false)
+            sessions.handle(ShowdownEvent.Win(BATTLE_1, OPPONENT))
+            val sentBefore = client.roomCommands.size
+
+            sessions.undo(BATTLE_1)
+
+            assertEquals(sentBefore, client.roomCommands.size)
+        }
+
+    @Test
+    fun SessionManager_UndoSendFails_StaysWaitingAndShowsError() =
+        runTest {
+            startBattles(BATTLE_1)
+            sessions.handle(requestEvent(BATTLE_1, rqid = 7))
+            sessions.chooseMove(BATTLE_1, slot = 1, terastallize = false)
+            client.commandFailure = IOException(SOCKET_CLOSED)
+
+            sessions.undo(BATTLE_1)
+
+            val session =
+                sessions.state.value.sessions
+                    .getValue(BATTLE_1)
+            assertTrue(session.waitingForOpponent)
+            assertNotNull(session.lastError)
+        }
+
     private fun requestEvent(
         roomId: String,
         rqid: Int,

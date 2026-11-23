@@ -27,15 +27,46 @@
     <string name="lobby_find_random_battle">Find a Random Battle</string>
     <string name="lobby_searching">Searching for an opponent…</string>
     <string name="lobby_cancel_search">Cancel</string>
-    <string name="lobby_battle_untitled">Battle starting…</string>
-    <string name="lobby_leave_battle">Leave battle</string>
-    <string name="lobby_result_won">You won!</string>
-    <string name="lobby_result_lost">You lost.</string>
-    <string name="lobby_result_tied">It\'s a tie.</string>
-    <string name="lobby_forfeit_title">Forfeit and leave?</string>
-    <string name="lobby_forfeit_text">This battle isn\'t over. Leaving now counts as a loss.</string>
-    <string name="lobby_forfeit_confirm">Forfeit</string>
-    <string name="lobby_forfeit_dismiss">Keep playing</string>
+
+    <!-- Battle menu (bottom screen) -->
+    <string name="battle_untitled">Battle starting…</string>
+    <string name="battle_turn">Turn %1$d</string>
+    <string name="battle_move_pp">%1$d/%2$d PP</string>
+    <string name="battle_terastallize">Terastallize (%1$s)</string>
+    <string name="battle_party">Party</string>
+    <string name="battle_back">Back</string>
+    <string name="battle_forfeit">Forfeit</string>
+    <string name="battle_waiting">Waiting for your opponent…</string>
+    <string name="battle_starting">Waiting for the battle to start…</string>
+    <string name="battle_undo">Cancel choice</string>
+    <string name="battle_must_switch">Choose a Pokémon to send in</string>
+    <string name="battle_switch_in">Switch in</string>
+    <string name="battle_leave">Leave battle</string>
+    <string name="battle_result_won">You won!</string>
+    <string name="battle_result_lost">You lost.</string>
+    <string name="battle_result_tied">It\x27s a tie.</string>
+    <string name="battle_forfeit_title">Forfeit this battle?</string>
+    <string name="battle_forfeit_text">It counts as a loss.</string>
+    <string name="battle_forfeit_confirm">Forfeit</string>
+    <string name="battle_forfeit_dismiss">Keep playing</string>
+
+    <!-- Party member -->
+    <string name="party_level">%1$s Lv. %2$d</string>
+    <string name="party_hp">%1$d/%2$d HP</string>
+    <string name="party_hp_unknown_max">%1$d HP</string>
+    <string name="party_active">In battle</string>
+    <string name="party_fainted">Fainted</string>
+    <string name="party_item">Item: %1$s</string>
+    <string name="party_ability">Ability: %1$s</string>
+    <string name="party_tera">Tera type: %1$s</string>
+    <string name="party_stats">Atk %1$d · Def %2$d · SpA %3$d · SpD %4$d · Spe %5$d</string>
+    <string name="party_moves">Moves: %1$s</string>
+    <string name="status_brn">BRN</string>
+    <string name="status_par">PAR</string>
+    <string name="status_slp">SLP</string>
+    <string name="status_frz">FRZ</string>
+    <string name="status_psn">PSN</string>
+    <string name="status_tox">TOX</string>
 
     <!-- Search failures, one per SearchError -->
     <string name="lobby_error_refused">Showdown refused the search: %1$s</string>

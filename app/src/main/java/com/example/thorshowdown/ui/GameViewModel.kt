@@ -7,7 +7,9 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.example.thorshowdown.ThorShowdownApp
 import com.example.thorshowdown.data.BattleFormat
+import com.example.thorshowdown.data.BattleSession
 import com.example.thorshowdown.data.LoginState
+import com.example.thorshowdown.data.SessionsState
 import com.example.thorshowdown.data.ShowdownRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -15,6 +17,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.util.logging.Logger
 
 /**
  * Top screen (display 0). [loggedInUsername] is null until the native login succeeds;
@@ -25,10 +28,11 @@ data class TopUiState(
     val battleRoomId: String? = null,
 )
 
-/** Bottom screen (display 1). [lobby] is null until logged in. */
+/** Bottom screen (display 1). [lobby] is null until logged in; [battle] is the current battle's menu, if any. */
 data class BottomUiState(
     val login: LoginUiState = LoginUiState.Loading,
     val lobby: LobbyUiState? = null,
+    val battle: BattleUiState? = null,
 )
 
 /** Everything the user can do from either screen. */
@@ -54,6 +58,23 @@ sealed interface UserAction {
     data class LeaveBattle(
         val roomId: String,
     ) : UserAction
+
+    /** Use move [slot] (1-based) in the current battle, Terastallizing first if [terastallize]. */
+    data class ChooseMove(
+        val slot: Int,
+        val terastallize: Boolean,
+    ) : UserAction
+
+    /** Switch to party [slot] (1-based) in the current battle. */
+    data class SwitchTo(
+        val slot: Int,
+    ) : UserAction
+
+    /** Take back the choice sent in the current battle. */
+    data object UndoChoice : UserAction
+
+    /** Forfeit the current battle (it stays open to show the result). */
+    data object Forfeit : UserAction
 }
 
 /** Shared by both displays. Turns repository state into per-screen UI state. */
@@ -78,7 +99,8 @@ class GameViewModel(
         ) { state, declined, search, sessions ->
             BottomUiState(
                 login = LoginUiState.from(state, declined),
-                lobby = if (state is LoginState.LoggedIn) LobbyUiState.from(search, sessions) else null,
+                lobby = if (state is LoginState.LoggedIn) LobbyUiState(search) else null,
+                battle = sessions.current()?.let(BattleUiState::from).takeIf { state is LoginState.LoggedIn },
             )
         }.stateIn(viewModelScope, SharingStarted.Eagerly, BottomUiState())
 
@@ -94,10 +116,28 @@ class GameViewModel(
             is UserAction.FindBattle -> viewModelScope.launch { repository.startSearch(action.format) }
             UserAction.CancelSearch -> viewModelScope.launch { repository.cancelSearch() }
             is UserAction.LeaveBattle -> viewModelScope.launch { repository.leave(action.roomId) }
+            is UserAction.ChooseMove -> inCurrentBattle { repository.chooseMove(it, action.slot, action.terastallize) }
+            is UserAction.SwitchTo -> inCurrentBattle { repository.switchTo(it, action.slot) }
+            UserAction.UndoChoice -> inCurrentBattle { repository.undo(it) }
+            UserAction.Forfeit -> inCurrentBattle { repository.forfeit(it) }
         }
     }
 
+    /** Runs [command] for the battle being shown; logged and ignored when there is none. */
+    private fun inCurrentBattle(command: suspend (roomId: String) -> Unit) {
+        val roomId = repository.sessions.value.currentRoomId
+        if (roomId == null) {
+            logger.info("Ignoring a battle action: no battle is shown")
+            return
+        }
+        viewModelScope.launch { command(roomId) }
+    }
+
+    private fun SessionsState.current(): BattleSession? = currentRoomId?.let(sessions::get)
+
     companion object {
+        private val logger: Logger = Logger.getLogger(GameViewModel::class.java.name)
+
         val Factory: ViewModelProvider.Factory =
             viewModelFactory {
                 initializer {

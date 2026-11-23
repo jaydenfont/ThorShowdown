@@ -11,6 +11,7 @@ import com.example.thorshowdown.data.BattleSession
 import com.example.thorshowdown.data.LoginState
 import com.example.thorshowdown.data.SessionsState
 import com.example.thorshowdown.data.ShowdownRepository
+import com.example.thorshowdown.data.moves.MoveDex
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -83,6 +84,7 @@ sealed interface UserAction {
 /** Shared by both displays. Turns repository state into per-screen UI state. */
 class GameViewModel(
     private val repository: ShowdownRepository,
+    moveDex: MoveDex,
 ) : ViewModel() {
     /** Set once the user declines the saved login; UI-only, so it lives here and not in the repository. */
     private val useDifferentAccount = MutableStateFlow(false)
@@ -99,11 +101,12 @@ class GameViewModel(
             useDifferentAccount,
             repository.searchState,
             repository.sessions,
-        ) { state, declined, search, sessions ->
+            moveDex.moves,
+        ) { state, declined, search, sessions, moves ->
             BottomUiState(
                 login = LoginUiState.from(state, declined),
                 lobby = if (state is LoginState.LoggedIn) LobbyUiState(search) else null,
-                battle = sessions.current()?.let(BattleUiState::from).takeIf { state is LoginState.LoggedIn },
+                battle = sessions.current()?.let { BattleUiState.from(it, moves) }.takeIf { state is LoginState.LoggedIn },
             )
         }.stateIn(viewModelScope, SharingStarted.Eagerly, BottomUiState())
 
@@ -146,7 +149,7 @@ class GameViewModel(
             viewModelFactory {
                 initializer {
                     val app = this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as ThorShowdownApp
-                    GameViewModel(app.repository)
+                    GameViewModel(app.repository, app.moveDex)
                 }
             }
     }

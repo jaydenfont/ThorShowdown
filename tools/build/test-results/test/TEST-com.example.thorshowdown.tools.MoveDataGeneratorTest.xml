@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.example.thorshowdown.tools.MoveDataGeneratorTest" tests="9" skipped="0" failures="0" errors="0" timestamp="2026-11-23T03:37:46.680Z" hostname="DESKTOP-7BK9BUI" time="0.055">
+  <properties/>
+  <testcase name="MoveDataGenerator_MoveWithoutText_HasEmptyDescription" classname="com.example.thorshowdown.tools.MoveDataGeneratorTest" time="0.043"/>
+  <testcase name="MoveDataGenerator_NestedObjectFields_AreIgnored" classname="com.example.thorshowdown.tools.MoveDataGeneratorTest" time="0.003"/>
+  <testcase name="MoveDataGenerator_DescriptionWithEscapedQuote_IsUnescaped" classname="com.example.thorshowdown.tools.MoveDataGeneratorTest" time="0.001"/>
+  <testcase name="MoveDataGenerator_OlderGenerationText_IsIgnored" classname="com.example.thorshowdown.tools.MoveDataGeneratorTest" time="0.001"/>
+  <testcase name="MoveDataGenerator_MoveWithText_CombinesStatsAndDescription" classname="com.example.thorshowdown.tools.MoveDataGeneratorTest" time="0.001"/>
+  <testcase name="MoveDataGenerator_PriorityMove_KeepsPriority" classname="com.example.thorshowdown.tools.MoveDataGeneratorTest" time="0.0"/>
+  <testcase name="MoveDataGenerator_QuotedMoveId_IsUnquoted" classname="com.example.thorshowdown.tools.MoveDataGeneratorTest" time="0.001"/>
+  <testcase name="MoveDataGenerator_OnlyShortDescription_UsesIt" classname="com.example.thorshowdown.tools.MoveDataGeneratorTest" time="0.0"/>
+  <testcase name="MoveDataGenerator_NeverMisses_HasNoAccuracy" classname="com.example.thorshowdown.tools.MoveDataGeneratorTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

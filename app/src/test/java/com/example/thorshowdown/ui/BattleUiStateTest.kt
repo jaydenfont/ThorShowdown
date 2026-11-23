@@ -3,6 +3,7 @@ package com.example.thorshowdown.ui
 import com.example.thorshowdown.data.BattleResult
 import com.example.thorshowdown.data.BattleSession
 import com.example.thorshowdown.data.SessionManager
+import com.example.thorshowdown.data.moves.MoveInfo
 import com.example.thorshowdown.fakes.FakeShowdownClient
 import com.example.thorshowdown.showdown.ActivePokemon
 import com.example.thorshowdown.showdown.BattleRequest
@@ -146,6 +147,44 @@ class BattleUiStateTest {
     }
 
     @Test
+    fun BattleUiState_WithMoveData_MoveButtonCarriesInfo() {
+        val state = BattleUiState.from(session(chooseRequest()), MOVE_DATA)
+
+        assertEquals(THUNDERBOLT_INFO, state.moves.first().info)
+    }
+
+    @Test
+    fun BattleUiState_MoveNotInData_HasNoInfo() {
+        val state = BattleUiState.from(session(chooseRequest()), MOVE_DATA)
+
+        assertEquals(null, state.moves[1].info)
+    }
+
+    @Test
+    fun BattleUiState_DisabledWithReason_CarriesReason() {
+        val request =
+            chooseRequest().let {
+                it.copy(
+                    active =
+                        listOf(
+                            it.active.first().copy(moves = listOf(MoveSlot(PROTECT, "protect", disabled = MoveDisabled.Disabled(TAUNTED)))),
+                        ),
+                )
+            }
+
+        val state = BattleUiState.from(session(request))
+
+        assertEquals(TAUNTED, state.moves.first().disabledReason)
+    }
+
+    @Test
+    fun BattleUiState_WithMoveData_PartyMovesShowNames() {
+        val state = BattleUiState.from(session(chooseRequest()), mapOf("moonblast" to MOONBLAST_INFO))
+
+        assertEquals(listOf("Moonblast", "encore"), state.party[1].moves)
+    }
+
+    @Test
     fun BattleUiState_TimerOff_CanStartTimer() {
         val state = BattleUiState.from(session(chooseRequest()))
 
@@ -279,6 +318,11 @@ class BattleUiStateTest {
         const val PROTECT = "Protect"
         const val TERA_TYPE = "Fighting"
         val TIME_LEFT = TimeLeft(turnSeconds = 120, totalSeconds = 240)
+        const val TAUNTED = "Taunt"
+        val THUNDERBOLT_INFO = MoveInfo("Thunderbolt", "Electric", "Special", 90, 100, 0, "Has a 10% chance to paralyze the target.")
+        val MOONBLAST_INFO =
+            MoveInfo("Moonblast", "Fairy", "Special", 95, 100, 0, "Has a 30% chance to lower the target's Special Attack by 1 stage.")
+        val MOVE_DATA = mapOf("thunderbolt" to THUNDERBOLT_INFO)
         const val ERROR = "[Invalid choice] Can't undo"
         val WHIMSICOTT_STATS = Stats(atk = 117, def = 191, spa = 178, spd = 174, spe = 243)
         const val TRANSCRIPT_PATH = "/battles/gen9-singles.txt"

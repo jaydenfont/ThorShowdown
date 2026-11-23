@@ -1,6 +1,7 @@
 package com.example.thorshowdown.ui
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -17,6 +18,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -36,6 +38,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.thorshowdown.R
 import com.example.thorshowdown.data.BattleResult
+import com.example.thorshowdown.data.moves.MoveInfo
 import com.example.thorshowdown.showdown.Status
 import kotlinx.coroutines.delay
 import kotlin.time.Duration.Companion.seconds
@@ -49,6 +52,7 @@ private val TICK = 1.seconds
 private const val LOW_TIME_SECONDS = 30
 private const val SECONDS_PER_MINUTE = 60
 private const val CLOCK_FORMAT = "%d:%02d"
+private const val DISABLED_ALPHA = 0.6f
 
 /** Bottom-screen battle menu (#7, functional pass): moves, Tera, party, switching, undo, forfeit. */
 @Composable
@@ -157,24 +161,75 @@ private fun MoveGrid(
     modifier: Modifier,
     onChoose: (slot: Int) -> Unit,
 ) {
+    var describedSlot by rememberSaveable { mutableStateOf<Int?>(null) }
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(ITEM_SPACING)) {
         moves.chunked(MOVES_PER_ROW).forEach { row ->
             Row(modifier = Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(ITEM_SPACING)) {
                 row.forEach { move ->
-                    Button(
-                        onClick = { onChoose(move.slot) },
-                        enabled = move.enabled,
+                    MoveTile(
+                        move = move,
                         modifier = Modifier.weight(1f).fillMaxSize(),
-                    ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(move.name, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                            Text(stringResource(R.string.battle_move_pp, move.pp, move.maxPp), style = MaterialTheme.typography.bodySmall)
-                        }
-                    }
+                        onChoose = { onChoose(move.slot) },
+                        onDescribe = { describedSlot = move.slot },
+                    )
                 }
             }
         }
     }
+    moves.firstOrNull { it.slot == describedSlot }?.let { MoveInfoDialog(it, onDismiss = { describedSlot = null }) }
+}
+
+/** A move button: tap chooses it (when enabled); a long press always shows its description. */
+@Composable
+private fun MoveTile(
+    move: MoveButton,
+    modifier: Modifier,
+    onChoose: () -> Unit,
+    onDescribe: () -> Unit,
+) {
+    val colors = MaterialTheme.colorScheme
+    Surface(
+        shape = MaterialTheme.shapes.extraLarge,
+        color = if (move.enabled) colors.primary else colors.surfaceVariant,
+        contentColor = if (move.enabled) colors.onPrimary else colors.onSurfaceVariant.copy(alpha = DISABLED_ALPHA),
+        modifier = modifier.combinedClickable(onClick = { if (move.enabled) onChoose() }, onLongClick = onDescribe),
+    ) {
+        Column(verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(move.name, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(stringResource(R.string.battle_move_pp, move.pp, move.maxPp), style = MaterialTheme.typography.bodySmall)
+        }
+    }
+}
+
+@Composable
+private fun MoveInfoDialog(
+    move: MoveButton,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(move.info?.name ?: move.name) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(ITEM_SPACING)) {
+                move.info?.let { info ->
+                    Text(moveSummary(info), fontWeight = FontWeight.Bold)
+                    if (info.priority != 0) Text(stringResource(R.string.move_priority, info.priority))
+                }
+                Text(move.info?.description?.takeIf { it.isNotEmpty() } ?: stringResource(R.string.move_no_description))
+                move.disabledReason?.let { Text(stringResource(R.string.move_disabled, it), color = MaterialTheme.colorScheme.error) }
+            }
+        },
+        confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.move_close)) } },
+    )
+}
+
+/** e.g. "Electric · Special · Power 90 · Accuracy 100%"; status moves and never-miss moves show a dash. */
+@Composable
+private fun moveSummary(info: MoveInfo): String {
+    val none = stringResource(R.string.move_no_value)
+    val power = info.basePower.takeIf { it > 0 }?.toString() ?: none
+    val accuracy = info.accuracy?.let { stringResource(R.string.move_accuracy_percent, it) } ?: none
+    return stringResource(R.string.move_summary, info.type, info.category, power, accuracy)
 }
 
 @Composable

@@ -2,6 +2,7 @@ package com.example.thorshowdown.ui
 
 import com.example.thorshowdown.data.BattleResult
 import com.example.thorshowdown.data.BattleSession
+import com.example.thorshowdown.data.moves.MoveInfo
 import com.example.thorshowdown.showdown.ActivePokemon
 import com.example.thorshowdown.showdown.Gender
 import com.example.thorshowdown.showdown.MoveDisabled
@@ -35,7 +36,10 @@ data class BattleUiState(
 ) {
     companion object {
         /** Builds the menu from the session's latest `|request|`; the server's request is the source of truth. */
-        fun from(session: BattleSession): BattleUiState {
+        fun from(
+            session: BattleSession,
+            moveData: Map<String, MoveInfo> = emptyMap(),
+        ): BattleUiState {
             val phase = phaseOf(session)
             val active = session.request?.active?.firstOrNull()
             return BattleUiState(
@@ -43,9 +47,9 @@ data class BattleUiState(
                 title = session.title,
                 turn = session.turn,
                 phase = phase,
-                moves = movesOf(active, phase),
+                moves = movesOf(active, phase, moveData),
                 teraType = active?.canTerastallize.takeIf { phase == BattlePhase.Choose },
-                party = partyOf(session, phase, trapped = active?.trapped == true),
+                party = partyOf(session, phase, trapped = active?.trapped == true, moveData),
                 canUndo = session.canUndo,
                 canStartTimer = !session.timerOn && phase != BattlePhase.Finished,
                 timer =
@@ -71,6 +75,7 @@ data class BattleUiState(
         private fun movesOf(
             active: ActivePokemon?,
             phase: BattlePhase,
+            moveData: Map<String, MoveInfo>,
         ): List<MoveButton> =
             active?.moves.orEmpty().mapIndexed { index, move ->
                 MoveButton(
@@ -79,6 +84,8 @@ data class BattleUiState(
                     pp = move.pp,
                     maxPp = move.maxPp,
                     enabled = phase == BattlePhase.Choose && move.disabled == MoveDisabled.Enabled,
+                    info = moveData[move.id],
+                    disabledReason = (move.disabled as? MoveDisabled.Disabled)?.reason,
                 )
             }
 
@@ -86,10 +93,11 @@ data class BattleUiState(
             session: BattleSession,
             phase: BattlePhase,
             trapped: Boolean,
+            moveData: Map<String, MoveInfo>,
         ): List<PartyMember> {
             val switchingAllowed = phase == BattlePhase.MustSwitch || (phase == BattlePhase.Choose && !trapped)
             return session.request?.side?.pokemon.orEmpty().mapIndexed { index, pokemon ->
-                memberOf(index + 1, pokemon, switchingAllowed)
+                memberOf(index + 1, pokemon, switchingAllowed, moveData)
             }
         }
 
@@ -97,6 +105,7 @@ data class BattleUiState(
             slot: Int,
             pokemon: SidePokemon,
             switchingAllowed: Boolean,
+            moveData: Map<String, MoveInfo>,
         ): PartyMember {
             val details = PokemonDetails.parse(pokemon.details)
             val condition = PokemonCondition.parse(pokemon.condition)
@@ -114,7 +123,7 @@ data class BattleUiState(
                 ability = pokemon.ability,
                 teraType = pokemon.teraType,
                 stats = pokemon.stats,
-                moves = pokemon.moves,
+                moves = pokemon.moves.map { id -> moveData[id]?.name ?: id },
                 canSwitchIn = switchingAllowed && !condition.fainted && !pokemon.active,
             )
         }
@@ -147,6 +156,10 @@ data class MoveButton(
     val pp: Int,
     val maxPp: Int,
     val enabled: Boolean,
+    /** From the bundled move data; null if the move isn't in it. */
+    val info: MoveInfo? = null,
+    /** Why the server disabled the move, if it said. */
+    val disabledReason: String? = null,
 )
 
 /** One of the player's Pokémon; [slot] is 1-based in the request's team order, as sent in a switch. */

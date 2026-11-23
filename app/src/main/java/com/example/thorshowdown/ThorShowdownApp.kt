@@ -8,6 +8,7 @@ import androidx.datastore.preferences.preferencesDataStore
 import com.example.thorshowdown.data.ShowdownRepository
 import com.example.thorshowdown.data.local.KeystoreCredentialStore
 import com.example.thorshowdown.data.local.LocalDataSource
+import com.example.thorshowdown.data.moves.AssetMoveDex
 import com.example.thorshowdown.data.web.CookieManagerWebSession
 import com.example.thorshowdown.showdown.DefaultShowdownClient
 import com.example.thorshowdown.showdown.OkHttpLoginApi
@@ -26,6 +27,9 @@ private val Context.credentialsDataStore: DataStore<Preferences> by preferencesD
 class ThorShowdownApp : Application() {
     /** Lives as long as the process; the Showdown connection runs here. */
     private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+
+    /** Bundled move data, loaded in the background at first use. */
+    val moveDex by lazy { AssetMoveDex(assets, applicationScope) }
 
     val repository by lazy {
         val config = ShowdownConfig()

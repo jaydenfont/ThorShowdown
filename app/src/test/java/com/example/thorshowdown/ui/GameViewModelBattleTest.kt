@@ -3,7 +3,9 @@ package com.example.thorshowdown.ui
 import com.example.thorshowdown.data.BattleResult
 import com.example.thorshowdown.data.ShowdownRepository
 import com.example.thorshowdown.data.local.LocalDataSource
+import com.example.thorshowdown.data.moves.MoveInfo
 import com.example.thorshowdown.fakes.FakeCredentialStore
+import com.example.thorshowdown.fakes.FakeMoveDex
 import com.example.thorshowdown.fakes.FakeShowdownClient
 import com.example.thorshowdown.fakes.FakeShowdownClient.RoomCommand
 import com.example.thorshowdown.fakes.FakeWebSession
@@ -72,6 +74,22 @@ class GameViewModelBattleTest {
                 BattleResult.Won,
                 viewModel.bottomState.value.battle
                     ?.result,
+            )
+        }
+
+    @Test
+    fun GameViewModel_BattleWithMoveData_MoveButtonsCarryInfo() =
+        runTest {
+            val viewModel = loggedInViewModel()
+
+            startBattle()
+
+            assertEquals(
+                MOVE_INFO,
+                viewModel.bottomState.value.battle
+                    ?.moves
+                    ?.first()
+                    ?.info,
             )
         }
 
@@ -159,8 +177,10 @@ class GameViewModelBattleTest {
         )
 
     private fun loggedInViewModel(): GameViewModel =
-        GameViewModel(ShowdownRepository(client, LocalDataSource(FakeCredentialStore()), FakeWebSession(), eventScope))
-            .also { it.onAction(UserAction.LogIn(FakeShowdownClient.USERNAME, PASSWORD)) }
+        GameViewModel(
+            ShowdownRepository(client, LocalDataSource(FakeCredentialStore()), FakeWebSession(), eventScope),
+            FakeMoveDex(MOVE_DATA),
+        ).also { it.onAction(UserAction.LogIn(FakeShowdownClient.USERNAME, PASSWORD)) }
 
     private companion object {
         const val PASSWORD = "hunter2"
@@ -171,5 +191,7 @@ class GameViewModelBattleTest {
         const val RQID = 4
         const val MOVE_NAME = "Thunderbolt"
         const val MOVE_ID = "thunderbolt"
+        val MOVE_INFO = MoveInfo("Thunderbolt", "Electric", "Special", 90, 100, 0, "Has a 10% chance to paralyze the target.")
+        val MOVE_DATA = mapOf(MOVE_ID to MOVE_INFO)
     }
 }

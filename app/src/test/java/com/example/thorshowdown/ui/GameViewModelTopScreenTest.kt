@@ -3,6 +3,7 @@ package com.example.thorshowdown.ui
 import com.example.thorshowdown.data.ShowdownRepository
 import com.example.thorshowdown.data.local.LocalDataSource
 import com.example.thorshowdown.fakes.FakeCredentialStore
+import com.example.thorshowdown.fakes.FakeMoveDex
 import com.example.thorshowdown.fakes.FakeShowdownClient
 import com.example.thorshowdown.fakes.FakeWebSession
 import com.example.thorshowdown.fakes.MainDispatcherRule
@@ -75,7 +76,7 @@ class GameViewModelTopScreenTest {
     @Test
     fun GameViewModel_BattleRoomWhileLoggedOut_TopScreenShowsNothing() =
         runTest {
-            val viewModel = GameViewModel(repository)
+            val viewModel = GameViewModel(repository, FakeMoveDex())
 
             client.emit(ShowdownEvent.RoomInit(BATTLE_1, RoomType.BATTLE))
 
@@ -85,7 +86,7 @@ class GameViewModelTopScreenTest {
     private val repository = ShowdownRepository(client, LocalDataSource(FakeCredentialStore()), FakeWebSession(), eventScope)
 
     private fun loggedInViewModel(): GameViewModel =
-        GameViewModel(repository).also { it.onAction(UserAction.LogIn(FakeShowdownClient.USERNAME, PASSWORD)) }
+        GameViewModel(repository, FakeMoveDex()).also { it.onAction(UserAction.LogIn(FakeShowdownClient.USERNAME, PASSWORD)) }
 
     private companion object {
         const val BATTLE_1 = "battle-gen9randombattle-1"

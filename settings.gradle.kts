@@ -25,3 +25,4 @@ dependencyResolutionManagement {
 rootProject.name = "Thor Showdown"
 include(":app")
 include(":showdown-client")
+include(":tools")

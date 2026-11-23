@@ -26,7 +26,7 @@ a WebView, and survive a dropped connection.
 |---|---|---|---|
 | [x] | [#5 Implement Login](https://github.com/jaydenfont/ThorShowdown/issues/5) | #1 | Native login + saved credentials (Keystore-encrypted). Design: [login.md](../design/login.md). WebView login moved to #4 (hand over the `sid` cookie). |
 | [x] | [#6 Implement Showdown Session Manager](https://github.com/jaydenfont/ThorShowdown/issues/6) | #1 | One session per room ID; room commands, leave (forfeits if unfinished), room switching. Design: [session_manager.md](../design/session_manager.md). |
-| [x] | [#10 Implement start of battle flow](https://github.com/jaydenfont/ThorShowdown/issues/10) | #1, #5, #6 | Matchmaker: search / cancel / refusal / timeout; temporary bottom-screen lobby. Design: [battle_start.md](../design/battle_start.md). |
+| [x] | [#10 Implement start of battle flow](https://github.com/jaydenfont/ThorShowdown/issues/10) | #1, #5, #6 | Matchmaker: search / cancel / refusal / timeout; temporary bottom-screen lobby. Design: [battle_start.md](../design/battle_start.md). Manual end-to-end battle deferred until #4 is in. |
 | [ ] | [#7 Bottom Screen Battle Functionality](https://github.com/jaydenfont/ThorShowdown/issues/7) | #6 | Functional first (moves, Tera, switch, forfeit, log). DS styling after the loop works. |
 | [ ] | [#4 WebView viewer for top screen](https://github.com/jaydenfont/ThorShowdown/issues/4) (**full**) | #5, #6, spike | Follows the session's current room ID. |
 

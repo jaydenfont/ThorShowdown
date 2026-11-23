@@ -67,6 +67,8 @@ a WebView, and survive a dropped connection.
   leaves; the result screen and "leave" button belong to #7, return to menu to #8.
 - **#11** has no description yet. Search refusals (popup / PM from `~` right after a
   search) are already shown by #10; other popups are #11's.
+- **Later (post-#4):** let the bottom screen control Showdown's display options in the
+  WebView (2D/3D sprites, etc.). Likely part of Settings (#8) or its own issue.
 - **#8 menu placement:** the #8 issue puts the main menu on the **top** screen, but #5
   put login on the **bottom** screen and #10 added a temporary bottom-screen lobby.
   Decide in #8: move login to the top, or put the menu on the bottom.

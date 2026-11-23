@@ -141,15 +141,37 @@ class ShowdownRepositorySearchTest {
         }
 
     @Test
-    fun ShowdownRepository_PopupWhileSearching_StaysSearching() =
+    fun ShowdownRepository_PopupWhileSearching_IsIdleWithInterruption() =
         runTest(UnconfinedTestDispatcher()) {
             val repository = loggedInRepository()
             repository.startSearch(FORMAT)
             client.emit(searchingFor(FORMAT_ID))
 
-            client.emit(ShowdownEvent.Popup(POPUP_MESSAGE))
+            client.emit(ShowdownEvent.Popup(OPPONENT_OFFLINE))
+
+            assertEquals(SearchState.Idle(SearchError.Interrupted(OPPONENT_OFFLINE)), repository.searchState.value)
+        }
+
+    @Test
+    fun ShowdownRepository_SystemPmWhileSearching_StaysSearching() =
+        runTest(UnconfinedTestDispatcher()) {
+            val repository = loggedInRepository()
+            repository.startSearch(FORMAT)
+            client.emit(searchingFor(FORMAT_ID))
+
+            client.emit(ShowdownEvent.PrivateMessage(ShowdownEvent.PrivateMessage.SYSTEM_SENDER, FakeShowdownClient.USERNAME, PM_MESSAGE))
 
             assertEquals(SearchState.Searching(FORMAT), repository.searchState.value)
+        }
+
+    @Test
+    fun ShowdownRepository_PopupWhileIdle_StaysIdleWithoutError() =
+        runTest(UnconfinedTestDispatcher()) {
+            val repository = loggedInRepository()
+
+            client.emit(ShowdownEvent.Popup(POPUP_MESSAGE))
+
+            assertEquals(SearchState.Idle(), repository.searchState.value)
         }
 
     @Test
@@ -301,6 +323,7 @@ class ShowdownRepositorySearchTest {
         const val POPUP_MESSAGE_SHOWN = "You must choose a name first.\nThen search again."
         const val PM_MESSAGE = "Your team was rejected."
         const val OTHER_PLAYER = "Bob"
+        const val OPPONENT_OFFLINE = "Sorry, your opponent guest8064286 went offline before your battle could start."
         const val SOCKET_CLOSED = "Socket closed"
         val SEARCH_TIMEOUT = 10.seconds
         val ONE_SECOND = 1.seconds

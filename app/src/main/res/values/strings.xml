@@ -39,6 +39,7 @@
 
     <!-- Search failures, one per SearchError -->
     <string name="lobby_error_refused">Showdown refused the search: %1$s</string>
+    <string name="lobby_error_interrupted">Search stopped: %1$s Search again to keep looking.</string>
     <string name="lobby_error_no_response">Showdown didn\'t respond to the search. Try again.</string>
     <string name="lobby_error_send_failed">Not connected to Showdown. Try again.</string>
 </resources>

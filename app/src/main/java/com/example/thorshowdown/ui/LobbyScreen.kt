@@ -128,6 +128,7 @@ private fun resultText(result: BattleResult): String =
 private fun searchErrorText(error: SearchError): String =
     when (error) {
         is SearchError.Refused -> stringResource(R.string.lobby_error_refused, error.message)
+        is SearchError.Interrupted -> stringResource(R.string.lobby_error_interrupted, error.message)
         SearchError.NoResponse -> stringResource(R.string.lobby_error_no_response)
         SearchError.SendFailed -> stringResource(R.string.lobby_error_send_failed)
     }

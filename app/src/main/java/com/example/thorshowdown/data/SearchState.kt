@@ -32,6 +32,11 @@ sealed interface SearchError {
         val message: String,
     ) : SearchError
 
+    /** The server stopped a confirmed search, e.g. the matched opponent went offline; [message] is its text. */
+    data class Interrupted(
+        val message: String,
+    ) : SearchError
+
     /** The server didn't answer in time. */
     data object NoResponse : SearchError
 

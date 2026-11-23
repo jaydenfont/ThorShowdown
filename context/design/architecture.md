@@ -195,7 +195,8 @@ sequenceDiagram
 - Exposes `StateFlow<SearchState>`: `Idle(error)`, `Requested` (sent), `Searching`
   (confirmed). The server's `|updatesearch|` is the source of truth; `Disconnected` → `Idle`.
 - While `Requested`, a `|popup|` or PM from `~` is a refusal; no reply in 10 s is
-  `NoResponse`; a failed send is `SendFailed`. Details: [battle_start.md](battle_start.md).
+  `NoResponse`; a failed send is `SendFailed`. While `Searching`, a `|popup|` ends the
+  search as `Interrupted` (the server can drop it without an `|updatesearch|`). Details: [battle_start.md](battle_start.md).
 - A match needs nothing from it: the server's `|init|battle` starts the session (#6).
 
 ### SessionManager (owned by Repository)

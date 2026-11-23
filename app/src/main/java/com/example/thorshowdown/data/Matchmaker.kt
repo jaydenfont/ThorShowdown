@@ -33,7 +33,7 @@ class Matchmaker(
     fun handle(event: ShowdownEvent) {
         when (event) {
             is ShowdownEvent.UpdateSearch -> onUpdateSearch(event.searching)
-            is ShowdownEvent.Popup -> onServerMessage(event.message)
+            is ShowdownEvent.Popup -> onPopup(event.message)
             is ShowdownEvent.PrivateMessage -> if (event.from == ShowdownEvent.PrivateMessage.SYSTEM_SENDER) onServerMessage(event.message)
             is ShowdownEvent.Disconnected -> _state.value = SearchState.Idle()
             else -> Unit
@@ -115,9 +115,21 @@ class Matchmaker(
 
     /** A server message right after a search, before it's confirmed, is the server refusing it. */
     private fun onServerMessage(message: String) {
-        val refusal = SearchState.Idle(SearchError.Refused(message.replace(POPUP_LINE_BREAK, LINE_BREAK)))
+        val refusal = SearchState.Idle(SearchError.Refused(readable(message)))
         _state.update { current -> if (current is SearchState.Requested) refusal else current }
     }
+
+    /**
+     * Popups can also stop a confirmed search without a later `|updatesearch|` (e.g. the matched
+     * opponent went offline), so any popup while searching ends it and shows why.
+     */
+    private fun onPopup(message: String) {
+        onServerMessage(message)
+        val interruption = SearchState.Idle(SearchError.Interrupted(readable(message)))
+        _state.update { current -> if (current is SearchState.Searching) interruption else current }
+    }
+
+    private fun readable(message: String): String = message.replace(POPUP_LINE_BREAK, LINE_BREAK)
 
     private companion object {
         val logger: Logger = Logger.getLogger(Matchmaker::class.java.name)

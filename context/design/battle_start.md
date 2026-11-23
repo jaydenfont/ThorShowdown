@@ -19,7 +19,7 @@ around it and a minimal bottom-screen UI to drive it.
 | Who | A new `Matchmaker` (owned by the Repository, like `SessionManager`) holds `StateFlow<SearchState>`, handles events and sends `useTeam` / `search` / `cancelSearch`. The Repository forwards every event to it and delegates `startSearch` / `cancelSearch`. |
 | State | `Idle(error: SearchError? = null)`, `Requested(format)` (sent, not yet confirmed), `Searching(format)` (the server's `|updatesearch|` lists it). |
 | Source of truth | `|updatesearch|`: `searching` contains the format → `Searching`; it doesn't (cancelled, matched or dropped) → `Idle`. `Disconnected` → `Idle` (the server forgets searches with the connection). |
-| Errors | While `Requested`, a `|popup|` or a PM from `~` is the refusal → `Idle(Refused(message))`, `||` turned into line breaks. No answer within 10 s → `Idle(NoResponse)`. A failed send (`IOException` / `NotConnectedException`) → `Idle(SendFailed)`. Popups at other times are #11. |
+| Errors | While `Requested`, a `|popup|` or a PM from `~` is the refusal → `Idle(Refused(message))`, `||` turned into line breaks. No answer within 10 s → `Idle(NoResponse)`. A failed send (`IOException` / `NotConnectedException`) → `Idle(SendFailed)`. While `Searching`, any `|popup|` → `Idle(Interrupted(message))`: the server can stop a confirmed search without a later `|updatesearch|` (seen live: "your opponent … went offline before your battle could start"). Popups while idle are #11. |
 | Preconditions | Only when logged in (`LoginState.LoggedIn`); otherwise logged and ignored. Ignored while `Requested` or `Searching`. Allowed while in a battle (several rooms are supported). |
 | Cancel | Sends `|/cancelsearch` and goes to `Idle` at once. A late `|updatesearch|` corrects it. A no-op when `Idle`. |
 | Match found | Showdown joins us to the room: `|init|battle` → SessionManager creates the session and makes it current (#6). The `|updatesearch|` with an empty `searching` returns the search to `Idle`. |
@@ -124,6 +124,7 @@ sealed interface SearchState {
 
 sealed interface SearchError {
     data class Refused(val message: String) : SearchError
+    data class Interrupted(val message: String) : SearchError
     data object NoResponse : SearchError
     data object SendFailed : SearchError
 }

@@ -13,13 +13,16 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
-/** Top screen (display 0). [loggedInUsername] is null until the native login succeeds. */
+/**
+ * Top screen (display 0). [loggedInUsername] is null until the native login succeeds;
+ * [battleRoomId] is the battle the WebView shows, null when idle.
+ */
 data class TopUiState(
     val loggedInUsername: String? = null,
+    val battleRoomId: String? = null,
 )
 
 /** Bottom screen (display 1). [lobby] is null until logged in. */
@@ -61,9 +64,10 @@ class GameViewModel(
     private val useDifferentAccount = MutableStateFlow(false)
 
     val topState: StateFlow<TopUiState> =
-        repository.loginState
-            .map { TopUiState(loggedInUsername = (it as? LoginState.LoggedIn)?.username) }
-            .stateIn(viewModelScope, SharingStarted.Eagerly, TopUiState())
+        combine(repository.loginState, repository.sessions) { login, sessions ->
+            val username = (login as? LoginState.LoggedIn)?.username
+            TopUiState(loggedInUsername = username, battleRoomId = sessions.currentRoomId.takeIf { username != null })
+        }.stateIn(viewModelScope, SharingStarted.Eagerly, TopUiState())
 
     val bottomState: StateFlow<BottomUiState> =
         combine(

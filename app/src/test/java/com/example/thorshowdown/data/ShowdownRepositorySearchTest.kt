@@ -4,6 +4,7 @@ import com.example.thorshowdown.data.local.LocalDataSource
 import com.example.thorshowdown.fakes.FakeCredentialStore
 import com.example.thorshowdown.fakes.FakeShowdownClient
 import com.example.thorshowdown.fakes.FakeShowdownClient.SearchCommand
+import com.example.thorshowdown.fakes.FakeWebSession
 import com.example.thorshowdown.showdown.NotConnectedException
 import com.example.thorshowdown.showdown.RoomType
 import com.example.thorshowdown.showdown.ShowdownEvent
@@ -21,7 +22,7 @@ class ShowdownRepositorySearchTest {
     private val client = FakeShowdownClient()
 
     private suspend fun TestScope.loggedInRepository(): ShowdownRepository =
-        ShowdownRepository(client, LocalDataSource(FakeCredentialStore()), backgroundScope).also {
+        ShowdownRepository(client, LocalDataSource(FakeCredentialStore()), FakeWebSession(), backgroundScope).also {
             it.login(FakeShowdownClient.USERNAME, PASSWORD)
         }
 
@@ -64,7 +65,7 @@ class ShowdownRepositorySearchTest {
     @Test
     fun ShowdownRepository_StartSearchWhenLoggedOut_SendsNothingAndStaysIdle() =
         runTest(UnconfinedTestDispatcher()) {
-            val repository = ShowdownRepository(client, LocalDataSource(FakeCredentialStore()), backgroundScope)
+            val repository = ShowdownRepository(client, LocalDataSource(FakeCredentialStore()), FakeWebSession(), backgroundScope)
 
             repository.startSearch(FORMAT)
 

@@ -6,6 +6,7 @@ import com.example.thorshowdown.data.local.LocalDataSource
 import com.example.thorshowdown.data.local.SavedLogin
 import com.example.thorshowdown.fakes.FakeCredentialStore
 import com.example.thorshowdown.fakes.FakeShowdownClient
+import com.example.thorshowdown.fakes.FakeWebSession
 import com.example.thorshowdown.fakes.MainDispatcherRule
 import com.example.thorshowdown.showdown.LoginFailure
 import com.example.thorshowdown.showdown.LoginResult
@@ -138,7 +139,8 @@ class GameViewModelLoginTest {
         )
     }
 
-    private fun newViewModel(): GameViewModel = GameViewModel(ShowdownRepository(client, LocalDataSource(credentials), eventScope))
+    private fun newViewModel(): GameViewModel =
+        GameViewModel(ShowdownRepository(client, LocalDataSource(credentials), FakeWebSession(), eventScope))
 
     private companion object {
         val SAVED_LOGIN = SavedLogin(FakeShowdownClient.USERNAME, "hunter2")

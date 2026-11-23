@@ -16,6 +16,9 @@ ShowdownClient->Server: POST /api/login (name, pass, challstr)
 Server-->ShowdownClient: assertion
 ShowdownClient->Server: |/trn username,0,assertion
 Server-->ShowdownClient: |updateuser|username|1|...
+ShowdownClient-->Repository: LoginResult.Success(username, sid)
+Repository->WebView: WebSession.signIn(sid): sid cookie via CookieManager
+note over Repository: then loginState = LoggedIn
 
 BottomScreen->GameViewModel: onAction(FindBattle(Gen9RandomBattle))
 GameViewModel->Repository: startSearch(format) (only when logged in)
@@ -33,6 +36,7 @@ Repository->Matchmaker: handle(UpdateSearch): Idle
 SessionManager-->GameViewModel: currentRoomId
 GameViewModel-->WebView: show room (roomId)
 WebView->Server: own connection: open battle room (view only)
+note over WebView: inject battle.js + battle.css: hide controls, scale battle
 
 loop each turn
 Server-->ShowdownClient: |request| {active, moves, switches}

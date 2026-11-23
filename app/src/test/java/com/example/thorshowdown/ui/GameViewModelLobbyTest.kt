@@ -9,6 +9,7 @@ import com.example.thorshowdown.fakes.FakeCredentialStore
 import com.example.thorshowdown.fakes.FakeShowdownClient
 import com.example.thorshowdown.fakes.FakeShowdownClient.RoomCommand
 import com.example.thorshowdown.fakes.FakeShowdownClient.SearchCommand
+import com.example.thorshowdown.fakes.FakeWebSession
 import com.example.thorshowdown.fakes.MainDispatcherRule
 import com.example.thorshowdown.showdown.BattleRequest
 import com.example.thorshowdown.showdown.RoomType
@@ -129,7 +130,7 @@ class GameViewModelLobbyTest {
     }
 
     private fun newViewModel(): GameViewModel =
-        GameViewModel(ShowdownRepository(client, LocalDataSource(FakeCredentialStore()), eventScope))
+        GameViewModel(ShowdownRepository(client, LocalDataSource(FakeCredentialStore()), FakeWebSession(), eventScope))
 
     private fun loggedInViewModel(): GameViewModel =
         newViewModel().also { it.onAction(UserAction.LogIn(FakeShowdownClient.USERNAME, PASSWORD)) }

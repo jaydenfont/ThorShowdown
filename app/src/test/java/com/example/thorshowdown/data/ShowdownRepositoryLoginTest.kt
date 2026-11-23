@@ -4,6 +4,7 @@ import com.example.thorshowdown.data.local.LocalDataSource
 import com.example.thorshowdown.data.local.SavedLogin
 import com.example.thorshowdown.fakes.FakeCredentialStore
 import com.example.thorshowdown.fakes.FakeShowdownClient
+import com.example.thorshowdown.fakes.FakeWebSession
 import com.example.thorshowdown.showdown.LoginFailure
 import com.example.thorshowdown.showdown.LoginResult
 import kotlinx.coroutines.CompletableDeferred
@@ -31,7 +32,7 @@ class ShowdownRepositoryLoginTest {
         eventScope.cancel()
     }
 
-    private val repository = ShowdownRepository(client, LocalDataSource(credentials), eventScope)
+    private val repository = ShowdownRepository(client, LocalDataSource(credentials), FakeWebSession(), eventScope)
 
     @Test
     fun ShowdownRepository_BeforeLoadingSavedLogin_StateIsLoading() {

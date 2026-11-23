@@ -3,7 +3,7 @@
 
     <!-- Top screen -->
     <string name="top_log_in_below">Log in on the bottom screen</string>
-    <string name="top_logged_in_as">Logged in as %1$s</string>
+    <string name="top_no_battle">Logged in as %1$s. No battle yet: find one on the bottom screen.</string>
 
     <!-- Login (bottom screen) -->
     <string name="login_title">Log in to Pokémon Showdown</string>

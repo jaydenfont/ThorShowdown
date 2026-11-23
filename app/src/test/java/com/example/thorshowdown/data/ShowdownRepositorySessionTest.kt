@@ -4,6 +4,7 @@ import com.example.thorshowdown.data.local.LocalDataSource
 import com.example.thorshowdown.fakes.FakeCredentialStore
 import com.example.thorshowdown.fakes.FakeShowdownClient
 import com.example.thorshowdown.fakes.FakeShowdownClient.RoomCommand
+import com.example.thorshowdown.fakes.FakeWebSession
 import com.example.thorshowdown.showdown.BattleRequest
 import com.example.thorshowdown.showdown.Choice
 import com.example.thorshowdown.showdown.RoomType
@@ -18,7 +19,7 @@ class ShowdownRepositorySessionTest {
     private val client = FakeShowdownClient()
 
     private fun TestScope.newRepository(): ShowdownRepository =
-        ShowdownRepository(client, LocalDataSource(FakeCredentialStore()), backgroundScope)
+        ShowdownRepository(client, LocalDataSource(FakeCredentialStore()), FakeWebSession(), backgroundScope)
 
     @Test
     fun ShowdownRepository_ServerStartsBattle_SessionAppears() =

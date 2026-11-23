@@ -6,6 +6,7 @@ Status: high-level design plus stub scaffolding in `app/`. Component designs:
 - [login.md](login.md): login and saved credentials (#5).
 - [session_manager.md](session_manager.md): battle sessions and room commands (#6).
 - [battle_start.md](battle_start.md): ladder search and the start of a battle (#10).
+- [webview.md](webview.md): the top-screen WebView (#4).
 
 ## Key decision: native client + view-only WebView (option A1)
 
@@ -37,6 +38,7 @@ flowchart TB
         SM["SessionManager<br/>(BattleSession per room ID)"]
         MM["Matchmaker<br/>(ladder search)"]
         Local["LocalDataSource<br/>(DataStore / Room)"]
+        WS["WebSession<br/>(sid cookie for the WebView)"]
     end
 
     Client["ShowdownClient<br/>(:showdown-client module)"]
@@ -50,6 +52,8 @@ flowchart TB
     Repo -- owns --> SM
     Repo -- owns --> MM
     Repo --> Local
+    Repo -- "signIn(sid)" --> WS
+    WS -. "CookieManager" .-> Top
     Repo -- "collects events, sends commands" --> Client
     Client <-- "WebSocket frames, login POST" --> Server
     Top -. "WebView: own site connection, view only" .-> Server
@@ -85,6 +89,8 @@ sequenceDiagram
     S-->>C: assertion
     C->>S: |/trn username,0,assertion
     S-->>C: |updateuser|username|1|...
+    C-->>R: LoginResult.Success(username, sid)
+    R->>W: WebSession.signIn(sid) (cookie), then LoggedIn
 
     B->>VM: onAction(FindBattle(format))
     VM->>R: startSearch(format) (only when logged in)
@@ -102,6 +108,7 @@ sequenceDiagram
     SM-->>VM: currentRoomId
     VM-->>W: show room (roomId)
     W->>S: own connection: open battle room (view only)
+    Note over W: inject battle.js + battle.css
 
     loop each turn
         S-->>C: |request| {active, moves, switches, rqid}
@@ -147,17 +154,16 @@ sequenceDiagram
 - Keeps no game logic of its own.
 
 ### TopScreen + WebView (display 0)
-- Hosts a WebView of the Showdown site (`AndroidView { WebView(...) }`).
-- Logged in as the same user, so it renders the battle with full player info.
-- Observes `currentRoomId` (via the ViewModel) and navigates the WebView to that
-  battle room. When there's no battle, shows an idle page (lobby or home).
-- Injected CSS hides everything but the battle view: move/switch controls, chat,
-  menus. Tapping Pokémon for stats tooltips still works.
-- **Lifetime:** create the WebView once and keep it (app-scoped or Activity-
-  retained). Recreating it reloads the page and costs ~1s plus a reconnect.
-- **Login (#4):** `/api/login` sets a `sid` session cookie (`Domain=pokemonshowdown.com`,
-  ~1 year). The native client exposes it (`LoginResult.Success.sid`), so the likely
-  approach is handing it to the WebView via `CookieManager`. To be confirmed in the #4 spike.
+- Hosts one `BattleWebView` (`AndroidView { WebView }`) of the Showdown web client, created
+  once logged in and kept; it loads `play.pokemonshowdown.com/<roomId>` for `topState.battleRoomId`
+  (the current room) and `about:blank` when idle, with a native status line on top.
+- Logged in as the same user via the `sid` cookie (see WebSession below), so it renders
+  the battle with our side's hidden info.
+- On every page load it injects `assets/webview/battle.js` + `battle.css`: hides the header,
+  controls, chat, log, ads and popups, and scales the battle to fill the screen.
+  Long-press a Pokémon for its stats tooltip.
+- Navigation is locked to `https://play.pokemonshowdown.com` (`ShowdownUrls.isAllowed`).
+- Details: [webview.md](webview.md); spike findings: [webview_spike.md](../research/webview_spike.md).
 
 ### BottomScreen (display 1, touch)
 - Stateless composable: move buttons, switch menu, forfeit, timer, battle log.
@@ -188,6 +194,13 @@ sequenceDiagram
   `leave`) through the SessionManager (#6). `startSearch` is ignored unless logged in.
 - Collects `client.events` from `init`, subscribed before any `connect()`, and hands each
   event to the Matchmaker and the SessionManager.
+- After a successful login it calls `WebSession.signIn(sid)` **before** publishing `LoggedIn`,
+  so the top screen is signed in by the time it appears (#4).
+
+### WebSession (data-layer port)
+- `signIn(sid)` hands the native login's `sid` cookie to the WebView. `CookieManagerWebSession`
+  sets it on `.pokemonshowdown.com` (Secure) and flushes; `CookieManager` persists it.
+- The `sid` never enters UI state. Clearing it on sign-out comes with logout (#8).
 
 ### Matchmaker (owned by Repository)
 - Runs ladder searches (`BattleFormat`, P0: `Gen9RandomBattle`): `|/utm null` then
@@ -263,7 +276,8 @@ class ThorShowdownApp : Application() {
     val repository by lazy {
         ShowdownRepository(
             client = DefaultShowdownClient(ShowdownConfig()),
-            local = LocalDataSource(this),
+            local = LocalDataSource(KeystoreCredentialStore(credentialsDataStore)),
+            webSession = CookieManagerWebSession(),
             scope = applicationScope,
         )
     }
@@ -308,9 +322,6 @@ fun onAction(action: UserAction) {
   sees spectator info.
 
 ## Open questions
-- WebView login: does setting the native `sid` cookie via `CookieManager` log the
-  WebView in? Test in the #4 spike.
 - Gamepad mapping: which Thor buttons map to moves/switches/confirm?
 - Reconnect strategy: how to resume an in-progress battle after a dropped connection
   or process death (both native and WebView).
-- Idle top screen: what the WebView shows between battles.

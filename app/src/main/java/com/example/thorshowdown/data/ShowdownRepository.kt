@@ -2,6 +2,7 @@ package com.example.thorshowdown.data
 
 import com.example.thorshowdown.data.local.LocalDataSource
 import com.example.thorshowdown.data.local.SavedLogin
+import com.example.thorshowdown.data.web.WebSession
 import com.example.thorshowdown.showdown.LoginFailure
 import com.example.thorshowdown.showdown.LoginResult
 import com.example.thorshowdown.showdown.ShowdownClient
@@ -22,6 +23,7 @@ import java.util.logging.Logger
 class ShowdownRepository(
     private val client: ShowdownClient,
     private val local: LocalDataSource,
+    private val webSession: WebSession,
     scope: CoroutineScope,
 ) {
     private val sessionManager = SessionManager(client)
@@ -69,7 +71,7 @@ class ShowdownRepository(
         try {
             _loginState.value = LoginState.LoggingIn(username)
             when (val result = connectAndLogin(username, password)) {
-                is LoginResult.Success -> onLoggedIn(SavedLogin(username, password), result.username)
+                is LoginResult.Success -> onLoggedIn(SavedLogin(username, password), result.username, result.sid)
                 is LoginResult.Failure -> onLoginFailed(LoginError(username, result.reason, result.message))
             }
         } finally {
@@ -105,11 +107,14 @@ class ShowdownRepository(
         _loginState.value = LoginState.LoggedOut(saved?.username.takeUnless { savedIsRefused }, error)
     }
 
+    /** Signs the WebView in before reporting the login, so "logged in" means the top screen is ready too. */
     private suspend fun onLoggedIn(
         login: SavedLogin,
         displayName: String,
+        sid: String?,
     ) {
         local.saveLogin(login)
+        if (sid != null) webSession.signIn(sid) else logger.warning { "Login gave no sid; the top screen will be a spectator" }
         _loginState.value = LoginState.LoggedIn(displayName)
     }
 

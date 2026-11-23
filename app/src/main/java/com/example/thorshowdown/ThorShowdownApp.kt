@@ -8,6 +8,7 @@ import androidx.datastore.preferences.preferencesDataStore
 import com.example.thorshowdown.data.ShowdownRepository
 import com.example.thorshowdown.data.local.KeystoreCredentialStore
 import com.example.thorshowdown.data.local.LocalDataSource
+import com.example.thorshowdown.data.web.CookieManagerWebSession
 import com.example.thorshowdown.showdown.DefaultShowdownClient
 import com.example.thorshowdown.showdown.OkHttpLoginApi
 import com.example.thorshowdown.showdown.OkHttpTransport
@@ -30,6 +31,6 @@ class ThorShowdownApp : Application() {
         val config = ShowdownConfig()
         val client = DefaultShowdownClient(config, OkHttpTransport(config), OkHttpLoginApi(config), applicationScope)
         val local = LocalDataSource(KeystoreCredentialStore(credentialsDataStore))
-        ShowdownRepository(client, local, applicationScope)
+        ShowdownRepository(client, local, CookieManagerWebSession(), applicationScope)
     }
 }

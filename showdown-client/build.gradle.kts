@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.kotlin.jvm)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ktlint)
+    `java-test-fixtures`
 }
 
 java {
@@ -37,6 +38,8 @@ dependencies {
     implementation(libs.okhttp)
     implementation(libs.kotlinx.serialization.json)
     api(libs.kotlinx.coroutines.core)
+
+    testFixturesApi(libs.kotlinx.coroutines.core)
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)

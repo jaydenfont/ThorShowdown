@@ -43,7 +43,7 @@ a WebView, and survive a dropped connection.
 
 | Status | Issue | Depends on | Notes |
 |---|---|---|---|
-| [ ] | [#16 Emulator workflow tests and QA reports](https://github.com/jaydenfont/ThorShowdown/issues/16) | #7 (first pass) | Hermetic scenarios on the emulator against a fake server, `:tools:qaRun` captures both screens, video and logs into an HTML report, and the `qa` skill reviews and publishes it. Design: [workflow_tests.md](../design/workflow_tests.md). **Done:** framework and four scenarios (Login, SearchAndCancel, BattleTurn, ForfeitAndLeave). **Found:** party panel stays open after a switch; bottom-screen dialogs open on the top screen. **Later:** timer, long-press description and network-loss scenarios; live smoke tests with a guest bot. |
+| [ ] | [#16 Emulator workflow tests and QA reports](https://github.com/jaydenfont/ThorShowdown/issues/16) | #7 (first pass) | Hermetic scenarios on the emulator against a fake server, `:tools:qaRun` captures both screens, video and logs into an HTML report, and the `qa` skill reviews and publishes it. Design: [workflow_tests.md](../design/workflow_tests.md). **Done:** framework and four scenarios (Login, SearchAndCancel, BattleTurn, ForfeitAndLeave). **Found and fixed in #7:** party panel stayed open after a switch; bottom-screen dialogs opened on the top screen (now `InlineDialog`). **Later:** timer, long-press description and network-loss scenarios; live smoke tests with a guest bot. |
 
 ## Phase 4: Release
 

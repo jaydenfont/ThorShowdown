@@ -54,6 +54,7 @@ dependencies {
     testImplementation(testFixtures(project(":showdown-client")))
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
+    androidTestImplementation(testFixtures(project(":showdown-client")))
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     androidTestImplementation(libs.androidx.espresso.core)

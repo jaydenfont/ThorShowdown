@@ -173,7 +173,7 @@ object ReportRenderer {
             append("<section class=\"scenario\" id=\"${anchor(scenario.name)}\">\n")
             append("<div class=\"scenario-head\"><h2>${esc(scenario.name)}</h2>${statusPill(scenario.status)}")
             append("<span class=\"muted mono\">${seconds(scenario.durationMillis)}</span>")
-            append("<p>${esc(scenario.spec.summary)}</p></div>\n")
+            append("</div>\n<p class=\"scenario-summary\">${esc(scenario.spec.summary)}</p>\n")
             append(problems(scenario))
             review?.notes?.let { append("<p class=\"review-note\">${esc(it)}</p>\n") }
             review?.logs?.let { append("<p class=\"review-note\">${Labels.LOGS}: ${verdictPill(it.verdict)} ${esc(it.reason)}</p>\n") }

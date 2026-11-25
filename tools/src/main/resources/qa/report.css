@@ -84,7 +84,7 @@ td.num { font-family: var(--font-mono); }
 
 .scenario { display: grid; gap: 18px; padding-top: 24px; border-top: 1px solid var(--line); }
 .scenario-head { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; }
-.scenario-head p { margin: 0; flex-basis: 100%; color: var(--muted); max-width: 68ch; }
+.scenario-summary { margin: 0; color: var(--muted); max-width: 68ch; }
 .problems { display: grid; gap: 8px; }
 .problem { margin: 0; padding: 10px 14px; border-radius: 6px; background: var(--fail-soft); color: var(--fg); }
 .problem strong { color: var(--fail); }

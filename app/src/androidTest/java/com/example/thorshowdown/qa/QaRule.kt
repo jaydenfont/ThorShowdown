@@ -29,6 +29,11 @@ class QaRule(
     val login = LoginRobot(compose)
     val lobby = LobbyRobot(compose)
 
+    /** Moments the QA runner screenshots; see [QaCheckpoints]. */
+    private val checkpoints = QaCheckpoints(compose)
+
+    fun checkpoint(checkpoint: Enum<*>) = checkpoints.checkpoint(checkpoint)
+
     override fun apply(
         base: Statement,
         description: Description,

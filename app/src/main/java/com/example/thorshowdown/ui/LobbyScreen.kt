@@ -61,8 +61,8 @@ private fun SearchControl(
         }
         is SearchState.Requested, is SearchState.Searching -> {
             CircularProgressIndicator()
-            Text(stringResource(R.string.lobby_searching))
-            TextButton(onClick = { onAction(UserAction.CancelSearch) }) {
+            Text(stringResource(R.string.lobby_searching), modifier = Modifier.testTag(TestTags.LOBBY_SEARCHING))
+            TextButton(onClick = { onAction(UserAction.CancelSearch) }, modifier = Modifier.testTag(TestTags.LOBBY_CANCEL_SEARCH)) {
                 Text(stringResource(R.string.lobby_cancel_search))
             }
         }

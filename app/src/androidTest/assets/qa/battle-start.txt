@@ -1,0 +1,20 @@
+>battle-gen9randombattle-qa1
+|init|battle
+|title|qa-player vs. qa-opponent
+|player|p1|qa-player|1|
+|player|p2|qa-opponent|2|
+|teamsize|p1|6
+|teamsize|p2|6
+|gametype|singles
+|gen|9
+|tier|[Gen 9] Random Battle
+---
+>battle-gen9randombattle-qa1
+|request|{"active":[{"moves":[{"move":"Shadow Ball","id":"shadowball","pp":24,"maxpp":24,"target":"normal","disabled":false},{"move":"Sludge Wave","id":"sludgewave","pp":16,"maxpp":16,"target":"allAdjacent","disabled":false},{"move":"Focus Blast","id":"focusblast","pp":8,"maxpp":8,"target":"normal","disabled":false},{"move":"Nasty Plot","id":"nastyplot","pp":32,"maxpp":32,"target":"self","disabled":false}],"canTerastallize":"Ghost"}],"side":{"name":"qa-player","id":"p1","pokemon":[{"ident":"p1: Gengar","details":"Gengar, L82, M","condition":"241/241","stats":{"atk":106,"def":131,"spa":359,"spd":186,"spe":189},"active":true,"moves":["shadowball","sludgewave","focusblast","nastyplot"],"baseAbility":"cursedbody","item":"choicespecs","pokeball":"pokeball","ability":"cursedbody"},{"ident":"p1: Lucario","details":"Lucario, L81, M","condition":"252/252","stats":{"atk":319,"def":176,"spa":245,"spd":176,"spe":279},"active":false,"moves":["closecombat","extremespeed","swordsdance","icepunch"],"baseAbility":"innerfocus","item":"lifeorb","pokeball":"pokeball","ability":"innerfocus"},{"ident":"p1: Landorus-Therian","details":"Landorus-Therian, L78, M","condition":"300/300","stats":{"atk":379,"def":216,"spa":221,"spd":196,"spe":299},"active":false,"moves":["earthquake","uturn","stealthrock","stoneedge"],"baseAbility":"intimidate","item":"leftovers","pokeball":"pokeball","ability":"intimidate"},{"ident":"p1: Ting-Lu","details":"Ting-Lu, L79, M","condition":"350/350","stats":{"atk":236,"def":300,"spa":130,"spd":256,"spe":124},"active":false,"moves":["earthquake","ruination","whirlwind","stealthrock"],"baseAbility":"vesselofruin","item":"leftovers","pokeball":"pokeball","ability":"vesselofruin"},{"ident":"p1: Rotom-Wash","details":"Rotom-Wash, L80, M","condition":"260/260","stats":{"atk":149,"def":251,"spa":310,"spd":251,"spe":206},"active":false,"moves":["hydropump","voltswitch","willowisp","painsplit"],"baseAbility":"levitate","item":"leftovers","pokeball":"pokeball","ability":"levitate"},{"ident":"p1: Iron Valiant","details":"Iron Valiant, L82, M","condition":"280/280","active":false,"moves":["closecombat","moonblast","knockoff","swordsdance"],"baseAbility":"quarkdrive","item":"boosterenergy","pokeball":"pokeball","ability":"quarkdrive"}]},"rqid":2}
+---
+>battle-gen9randombattle-qa1
+|
+|start
+|switch|p1a: Gengar|Gengar, L82, M|241/241
+|switch|p2a: Dragapult|Dragapult, L82, F|100/100
+|turn|1

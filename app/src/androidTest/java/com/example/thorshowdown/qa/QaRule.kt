@@ -6,6 +6,7 @@ import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
 import com.example.thorshowdown.MainActivity
 import com.example.thorshowdown.ThorShowdownApp
+import com.example.thorshowdown.qa.robots.BattleRobot
 import com.example.thorshowdown.qa.robots.LobbyRobot
 import com.example.thorshowdown.qa.robots.LoginRobot
 import com.example.thorshowdown.showdown.fakes.FakeShowdownServer
@@ -28,6 +29,14 @@ class QaRule(
 
     val login = LoginRobot(compose)
     val lobby = LobbyRobot(compose)
+    val battle = BattleRobot(compose)
+
+    /** Logs in as the canary player through the form and waits for the lobby. */
+    fun logInToLobby() {
+        login.assertFormShown()
+        login.logIn(Canaries.USERNAME, Canaries.PASSWORD)
+        lobby.assertShownFor(Canaries.USERNAME)
+    }
 
     /** Moments the QA runner screenshots; see [QaCheckpoints]. */
     private val checkpoints = QaCheckpoints(compose)

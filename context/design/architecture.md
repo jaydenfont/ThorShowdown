@@ -148,7 +148,9 @@ sequenceDiagram
 ### MainActivity (app entry point)
 - Owns the top display (display 0) via `setContent { TopScreen(...) }`.
 - Finds the bottom display (`DisplayManager`, first non-default display) and
-  shows it as a `Presentation` running `BottomScreen(...)`.
+  shows it as a `Presentation` running `BottomScreen(...)`. The bottom screen never opens dialog
+  windows (they would land on the top display, and a presentation's context refuses them); its dialogs
+  (forfeit, move details) are `InlineDialog`s drawn inside its own layout.
 - Creates the single `GameViewModel` shared by both screens.
 - Receives gamepad input (focused window) and forwards it to the ViewModel.
 - Keeps no game logic of its own.

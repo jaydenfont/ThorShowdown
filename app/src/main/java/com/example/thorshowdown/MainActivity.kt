@@ -46,6 +46,9 @@ class MainActivity : ComponentActivity() {
                 .displays
                 .firstOrNull { it.displayId != Display.DEFAULT_DISPLAY } ?: return
 
+        // The bottom screen never opens dialog windows: one opened from this (the Activity's) context
+        // would land on the top display, and the Presentation's context refuses them. It uses
+        // InlineDialog instead.
         val composeView =
             ComposeView(this).apply {
                 setContent {

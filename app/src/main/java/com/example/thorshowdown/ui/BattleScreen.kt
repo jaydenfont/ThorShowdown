@@ -3,6 +3,7 @@ package com.example.thorshowdown.ui
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
@@ -11,7 +12,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
@@ -62,36 +62,50 @@ fun BattleScreen(
 ) {
     var showingParty by rememberSaveable(state.roomId) { mutableStateOf(false) }
     var confirmingForfeit by rememberSaveable(state.roomId) { mutableStateOf(false) }
+    var describedSlot by rememberSaveable(state.roomId) { mutableStateOf<Int?>(null) }
 
-    Column(
-        modifier = Modifier.fillMaxSize().padding(SCREEN_PADDING),
-        verticalArrangement = Arrangement.spacedBy(ITEM_SPACING),
-    ) {
-        Header(state, onStartTimer = { onAction(UserAction.StartTimer) })
-        state.timer?.let { TimerCountdown(it, turn = state.turn) }
-        state.error?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
-        when {
-            state.phase == BattlePhase.Finished -> Finished(state, onAction)
-            state.phase == BattlePhase.MustSwitch -> MustSwitch(state, onAction)
-            showingParty -> PartyPanel(state.party, onAction, onBack = { showingParty = false })
-            else ->
-                ChooseOrWait(
-                    state = state,
-                    onAction = onAction,
-                    onShowParty = { showingParty = true },
-                    onForfeit = { confirmingForfeit = true },
-                )
+    DialogHost {
+        Column(
+            modifier = Modifier.fillMaxSize().padding(SCREEN_PADDING),
+            verticalArrangement = Arrangement.spacedBy(ITEM_SPACING),
+        ) {
+            Header(state, onStartTimer = { onAction(UserAction.StartTimer) })
+            state.timer?.let { TimerCountdown(it, turn = state.turn) }
+            state.error?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
+            when {
+                state.phase == BattlePhase.Finished -> Finished(state, onAction)
+                state.phase == BattlePhase.MustSwitch -> MustSwitch(state, onAction)
+                showingParty ->
+                    PartyPanel(
+                        party = state.party,
+                        // A switch ends the turn's choice, so the next turn opens on the moves, not the party.
+                        onAction = { action ->
+                            if (action is UserAction.SwitchTo) showingParty = false
+                            onAction(action)
+                        },
+                        onBack = { showingParty = false },
+                    )
+                else ->
+                    ChooseOrWait(
+                        state = state,
+                        onAction = onAction,
+                        onShowParty = { showingParty = true },
+                        onForfeit = { confirmingForfeit = true },
+                        onDescribe = { slot -> describedSlot = slot },
+                    )
+            }
         }
-    }
 
-    if (confirmingForfeit) {
-        ForfeitDialog(
-            onConfirm = {
-                confirmingForfeit = false
-                onAction(UserAction.Forfeit)
-            },
-            onDismiss = { confirmingForfeit = false },
-        )
+        state.moves.firstOrNull { it.slot == describedSlot }?.let { MoveInfoDialog(it, onDismiss = { describedSlot = null }) }
+        if (confirmingForfeit) {
+            ForfeitDialog(
+                onConfirm = {
+                    confirmingForfeit = false
+                    onAction(UserAction.Forfeit)
+                },
+                onDismiss = { confirmingForfeit = false },
+            )
+        }
     }
 }
 
@@ -121,6 +135,7 @@ private fun ColumnScope.ChooseOrWait(
     onAction: (UserAction) -> Unit,
     onShowParty: () -> Unit,
     onForfeit: () -> Unit,
+    onDescribe: (slot: Int) -> Unit,
 ) {
     // Tera applies to the next move only, so the toggle resets every turn.
     var terastallize by rememberSaveable(state.roomId, state.turn) { mutableStateOf(false) }
@@ -133,7 +148,12 @@ private fun ColumnScope.ChooseOrWait(
             label = { Text(stringResource(R.string.battle_terastallize, type)) },
         )
     }
-    MoveGrid(state.moves, modifier = Modifier.weight(1f)) { slot -> onAction(UserAction.ChooseMove(slot, terastallize)) }
+    MoveGrid(
+        moves = state.moves,
+        modifier = Modifier.weight(1f),
+        onChoose = { slot -> onAction(UserAction.ChooseMove(slot, terastallize)) },
+        onDescribe = onDescribe,
+    )
     Row(horizontalArrangement = Arrangement.spacedBy(ITEM_SPACING)) {
         OutlinedButton(onClick = onShowParty, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.battle_party)) }
         OutlinedButton(onClick = onForfeit, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.battle_forfeit)) }
@@ -160,8 +180,8 @@ private fun MoveGrid(
     moves: List<MoveButton>,
     modifier: Modifier,
     onChoose: (slot: Int) -> Unit,
+    onDescribe: (slot: Int) -> Unit,
 ) {
-    var describedSlot by rememberSaveable { mutableStateOf<Int?>(null) }
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(ITEM_SPACING)) {
         moves.chunked(MOVES_PER_ROW).forEach { row ->
             Row(modifier = Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(ITEM_SPACING)) {
@@ -170,13 +190,12 @@ private fun MoveGrid(
                         move = move,
                         modifier = Modifier.weight(1f).fillMaxSize(),
                         onChoose = { onChoose(move.slot) },
-                        onDescribe = { describedSlot = move.slot },
+                        onDescribe = { onDescribe(move.slot) },
                     )
                 }
             }
         }
     }
-    moves.firstOrNull { it.slot == describedSlot }?.let { MoveInfoDialog(it, onDismiss = { describedSlot = null }) }
 }
 
 /** A move button: tap chooses it (when enabled); a long press always shows its description. */
@@ -202,11 +221,11 @@ private fun MoveTile(
 }
 
 @Composable
-private fun MoveInfoDialog(
+private fun BoxScope.MoveInfoDialog(
     move: MoveButton,
     onDismiss: () -> Unit,
 ) {
-    AlertDialog(
+    InlineDialog(
         onDismissRequest = onDismiss,
         title = { Text(move.info?.name ?: move.name) },
         text = {
@@ -325,11 +344,11 @@ private fun Finished(
 }
 
 @Composable
-private fun ForfeitDialog(
+private fun BoxScope.ForfeitDialog(
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
 ) {
-    AlertDialog(
+    InlineDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.battle_forfeit_title)) },
         text = { Text(stringResource(R.string.battle_forfeit_text)) },

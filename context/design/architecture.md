@@ -7,6 +7,8 @@ Status: high-level design plus stub scaffolding in `app/`. Component designs:
 - [session_manager.md](session_manager.md): battle sessions and room commands (#6).
 - [battle_start.md](battle_start.md): ladder search and the start of a battle (#10).
 - [webview.md](webview.md): the top-screen WebView (#4).
+- [battle_menu.md](battle_menu.md): the bottom-screen battle menu (#7).
+- [workflow_tests.md](workflow_tests.md): emulator workflow tests, the QA runner and reports (#16).
 
 ## Key decision: native client + view-only WebView (option A1)
 
@@ -184,9 +186,18 @@ sequenceDiagram
 - Survives configuration changes, but not process death. Anything that must
   survive belongs in the Repository / LocalDataSource.
 
+### Composition root: ThorShowdownApp + AppContainer (#16)
+- `AppContainer` holds what the network and the device provide: `Transport`, `LoginApi`,
+  `CredentialStore`, `WebSession`. `DefaultAppContainer` is the real one (OkHttp, Keystore +
+  DataStore, CookieManager).
+- `ThorShowdownApp` builds the client and Repository from the container chosen by `AppGraph`:
+  the default, unless a workflow test called `installContainer(...)` before first use.
+  Installing after the repository exists throws.
+- Everything above the container is real in workflow tests. First step towards Hilt.
+
 ### Repository (app-scoped singleton)
 - Lives for the whole app, not one screen, so the native connection isn't tied
-  to the Activity lifecycle. Created in `ThorShowdownApp` (later: Hilt).
+  to the Activity lifecycle. Created in `ThorShowdownApp` from the `AppContainer` (later: Hilt).
 - Collects `ShowdownClient.events` and routes them to the SessionManager by room ID.
 - Coordinates login between `ShowdownClient` and `LocalDataSource` and exposes
   `loginState`. Connects (idempotently) at the start of each login. See [login.md](login.md).
@@ -281,14 +292,16 @@ data class BattleSession(
 
 ```kotlin
 class ThorShowdownApp : Application() {
+    private val graph = AppGraph { DefaultAppContainer(this, config) }
+
     val repository by lazy {
-        ShowdownRepository(
-            client = DefaultShowdownClient(ShowdownConfig()),
-            local = LocalDataSource(KeystoreCredentialStore(credentialsDataStore)),
-            webSession = CookieManagerWebSession(),
-            scope = applicationScope,
-        )
+        val container = graph.container
+        val client = DefaultShowdownClient(config, container.transport, container.loginApi, applicationScope)
+        ShowdownRepository(client, LocalDataSource(container.credentialStore), container.webSession, applicationScope)
     }
+
+    /** Workflow tests only; before first use. */
+    fun installContainer(container: AppContainer) = graph.install(container)
 }
 ```
 

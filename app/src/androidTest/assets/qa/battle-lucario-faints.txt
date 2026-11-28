@@ -1,0 +1,10 @@
+>battle-gen9randombattle-qa1
+|request|{"forceSwitch":[true],"side":{"name":"qa-player","id":"p1","pokemon":[{"ident":"p1: Lucario","details":"Lucario, L81, M","condition":"0 fnt","active":true,"moves":["closecombat","extremespeed","swordsdance","icepunch"],"item":"lifeorb","ability":"innerfocus"},{"ident":"p1: Gengar","details":"Gengar, L82, M","condition":"241/241","active":false,"moves":["shadowball","sludgewave","focusblast","nastyplot"],"item":"choicespecs","ability":"cursedbody"},{"ident":"p1: Landorus-Therian","details":"Landorus-Therian, L78, M","condition":"300/300","active":false,"moves":["earthquake","uturn","stealthrock","stoneedge"],"item":"leftovers","ability":"intimidate"},{"ident":"p1: Ting-Lu","details":"Ting-Lu, L79, M","condition":"350/350","active":false,"moves":["earthquake","ruination","whirlwind","stealthrock"],"item":"leftovers","ability":"vesselofruin"},{"ident":"p1: Rotom-Wash","details":"Rotom-Wash, L80, M","condition":"260/260","active":false,"moves":["hydropump","voltswitch","willowisp","painsplit"],"item":"leftovers","ability":"levitate"},{"ident":"p1: Iron Valiant","details":"Iron Valiant, L82, M","condition":"280/280","active":false,"moves":["closecombat","moonblast","knockoff","swordsdance"],"item":"boosterenergy","ability":"quarkdrive"}]},"rqid":3}
+---
+>battle-gen9randombattle-qa1
+|
+|switch|p1a: Lucario|Lucario, L81, M|252/252
+|move|p2a: Dragapult|Draco Meteor|p1a: Lucario
+|-damage|p1a: Lucario|0 fnt
+|faint|p1a: Lucario
+|upkeep

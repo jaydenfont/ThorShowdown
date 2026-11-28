@@ -19,6 +19,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -82,6 +83,7 @@ private fun LoginForm(
         value = username,
         onValueChange = { username = it },
         label = { Text(stringResource(R.string.login_username)) },
+        modifier = Modifier.testTag(TestTags.LOGIN_USERNAME),
         singleLine = true,
         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
     )
@@ -89,11 +91,16 @@ private fun LoginForm(
         value = password,
         onValueChange = { password = it },
         label = { Text(stringResource(R.string.login_password)) },
+        modifier = Modifier.testTag(TestTags.LOGIN_PASSWORD),
         singleLine = true,
         visualTransformation = PasswordVisualTransformation(),
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
     )
-    Button(onClick = { onAction(UserAction.LogIn(username.trim(), password)) }, enabled = canSubmit) {
+    Button(
+        onClick = { onAction(UserAction.LogIn(username.trim(), password)) },
+        enabled = canSubmit,
+        modifier = Modifier.testTag(TestTags.LOGIN_SUBMIT),
+    ) {
         Text(stringResource(R.string.login_button))
     }
 }

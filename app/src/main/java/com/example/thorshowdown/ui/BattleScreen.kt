@@ -32,6 +32,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -155,8 +156,12 @@ private fun ColumnScope.ChooseOrWait(
         onDescribe = onDescribe,
     )
     Row(horizontalArrangement = Arrangement.spacedBy(ITEM_SPACING)) {
-        OutlinedButton(onClick = onShowParty, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.battle_party)) }
-        OutlinedButton(onClick = onForfeit, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.battle_forfeit)) }
+        OutlinedButton(onClick = onShowParty, modifier = Modifier.weight(1f).testTag(TestTags.BATTLE_PARTY)) {
+            Text(stringResource(R.string.battle_party))
+        }
+        OutlinedButton(onClick = onForfeit, modifier = Modifier.weight(1f).testTag(TestTags.BATTLE_FORFEIT)) {
+            Text(stringResource(R.string.battle_forfeit))
+        }
     }
 }
 
@@ -165,12 +170,18 @@ private fun WaitingStatus(
     state: BattleUiState,
     onAction: (UserAction) -> Unit,
 ) {
-    Row(horizontalArrangement = Arrangement.spacedBy(ITEM_SPACING), verticalAlignment = Alignment.CenterVertically) {
+    Row(
+        modifier = Modifier.testTag(TestTags.BATTLE_WAITING),
+        horizontalArrangement = Arrangement.spacedBy(ITEM_SPACING),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
         CircularProgressIndicator()
         val waitingFor = if (state.moves.isEmpty()) R.string.battle_starting else R.string.battle_waiting
         Text(stringResource(waitingFor), modifier = Modifier.weight(1f))
         if (state.canUndo) {
-            TextButton(onClick = { onAction(UserAction.UndoChoice) }) { Text(stringResource(R.string.battle_undo)) }
+            TextButton(onClick = { onAction(UserAction.UndoChoice) }, modifier = Modifier.testTag(TestTags.BATTLE_UNDO)) {
+                Text(stringResource(R.string.battle_undo))
+            }
         }
     }
 }
@@ -211,7 +222,10 @@ private fun MoveTile(
         shape = MaterialTheme.shapes.extraLarge,
         color = if (move.enabled) colors.primary else colors.surfaceVariant,
         contentColor = if (move.enabled) colors.onPrimary else colors.onSurfaceVariant.copy(alpha = DISABLED_ALPHA),
-        modifier = modifier.combinedClickable(onClick = { if (move.enabled) onChoose() }, onLongClick = onDescribe),
+        modifier =
+            modifier
+                .testTag(TestTags.move(move.slot))
+                .combinedClickable(onClick = { if (move.enabled) onChoose() }, onLongClick = onDescribe),
     ) {
         Column(verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
             Text(move.name, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -256,7 +270,11 @@ private fun MustSwitch(
     state: BattleUiState,
     onAction: (UserAction) -> Unit,
 ) {
-    Text(stringResource(R.string.battle_must_switch), style = MaterialTheme.typography.titleSmall)
+    Text(
+        stringResource(R.string.battle_must_switch),
+        style = MaterialTheme.typography.titleSmall,
+        modifier = Modifier.testTag(TestTags.BATTLE_MUST_SWITCH),
+    )
     PartyList(state.party, onAction)
 }
 
@@ -267,7 +285,9 @@ private fun ColumnScope.PartyPanel(
     onBack: () -> Unit,
 ) {
     Column(modifier = Modifier.weight(1f)) { PartyList(party, onAction) }
-    OutlinedButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.battle_back)) }
+    OutlinedButton(onClick = onBack, modifier = Modifier.fillMaxWidth().testTag(TestTags.BATTLE_BACK)) {
+        Text(stringResource(R.string.battle_back))
+    }
 }
 
 /** All six Pokémon; tapping one shows its details and, when allowed, Switch in. */
@@ -296,7 +316,7 @@ private fun PartyMemberCard(
     onToggle: () -> Unit,
     onSwitchIn: () -> Unit,
 ) {
-    Card(modifier = Modifier.fillMaxWidth().clickable(onClick = onToggle)) {
+    Card(modifier = Modifier.fillMaxWidth().testTag(TestTags.partyMember(member.slot)).clickable(onClick = onToggle)) {
         Column(modifier = Modifier.padding(CARD_PADDING), verticalArrangement = Arrangement.spacedBy(ITEM_SPACING / 2)) {
             Row(horizontalArrangement = Arrangement.spacedBy(ITEM_SPACING), verticalAlignment = Alignment.CenterVertically) {
                 Text(
@@ -311,7 +331,7 @@ private fun PartyMemberCard(
                     member.active -> Text(stringResource(R.string.party_active), color = MaterialTheme.colorScheme.primary)
                 }
             }
-            if (expanded) MemberDetails(member, onSwitchIn)
+            if (expanded) MemberDetails(member, Modifier.testTag(TestTags.switchIn(member.slot)), onSwitchIn)
         }
     }
 }
@@ -319,6 +339,7 @@ private fun PartyMemberCard(
 @Composable
 private fun MemberDetails(
     member: PartyMember,
+    switchInModifier: Modifier,
     onSwitchIn: () -> Unit,
 ) {
     val small = MaterialTheme.typography.bodySmall
@@ -328,7 +349,7 @@ private fun MemberDetails(
     member.stats?.let { Text(stringResource(R.string.party_stats, it.atk, it.def, it.spa, it.spd, it.spe), style = small) }
     if (member.moves.isNotEmpty()) Text(stringResource(R.string.party_moves, member.moves.joinToString(MOVE_LIST_SEPARATOR)), style = small)
     if (member.canSwitchIn) {
-        Button(onClick = onSwitchIn, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.battle_switch_in)) }
+        Button(onClick = onSwitchIn, modifier = switchInModifier.fillMaxWidth()) { Text(stringResource(R.string.battle_switch_in)) }
     }
 }
 
@@ -337,8 +358,13 @@ private fun Finished(
     state: BattleUiState,
     onAction: (UserAction) -> Unit,
 ) {
-    state.result?.let { Text(resultText(it), style = MaterialTheme.typography.headlineSmall) }
-    Button(onClick = { onAction(UserAction.LeaveBattle(state.roomId)) }, modifier = Modifier.fillMaxWidth()) {
+    state.result?.let {
+        Text(resultText(it), style = MaterialTheme.typography.headlineSmall, modifier = Modifier.testTag(TestTags.BATTLE_RESULT))
+    }
+    Button(
+        onClick = { onAction(UserAction.LeaveBattle(state.roomId)) },
+        modifier = Modifier.fillMaxWidth().testTag(TestTags.BATTLE_LEAVE),
+    ) {
         Text(stringResource(R.string.battle_leave))
     }
 }
@@ -352,7 +378,11 @@ private fun BoxScope.ForfeitDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.battle_forfeit_title)) },
         text = { Text(stringResource(R.string.battle_forfeit_text)) },
-        confirmButton = { TextButton(onClick = onConfirm) { Text(stringResource(R.string.battle_forfeit_confirm)) } },
+        confirmButton = {
+            TextButton(onClick = onConfirm, modifier = Modifier.testTag(TestTags.BATTLE_FORFEIT_CONFIRM)) {
+                Text(stringResource(R.string.battle_forfeit_confirm))
+            }
+        },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.battle_forfeit_dismiss)) } },
     )
 }

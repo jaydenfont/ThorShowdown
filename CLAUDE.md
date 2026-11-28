@@ -43,6 +43,11 @@ Kotlin + Jetpack Compose. Modules:
   `ANDROID_SERIAL=emulator-5554` first so they don't run on a plugged-in Thor:
   `.\gradlew.bat :app:connectedDebugAndroidTest`
 - Regenerate bundled move data (manual, needs network): `.\gradlew.bat :tools:generateMoveData`
+- Workflow tests (manual, emulator only, never in CI): `.\gradlew.bat :tools:qaRun`
+  (one scenario: `-Pscenarios=Login`). Runs `qa/scenarios/*` against a fake server, captures
+  both screens, video and logcat, and writes `qa-runs/<timestamp>/report.html`. Re-render after a
+  review: `.\gradlew.bat :tools:qaReport -PrunDir=qa-runs/<timestamp>`.
+  The `qa` skill (`.claude/skills/qa`) runs, reviews and publishes a run. Design: `context/design/workflow_tests.md`.
 - Lint (whole project, must pass before merging): `.\gradlew.bat ktlintCheck`
   (auto-fix: `.\gradlew.bat ktlintFormat`)
 - If Gradle can't find Java, set `JAVA_HOME=C:\Program Files\Android\Android Studio\jbr`.

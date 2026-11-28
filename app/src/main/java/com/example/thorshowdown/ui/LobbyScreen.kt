@@ -12,6 +12,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.example.thorshowdown.R
@@ -34,7 +35,11 @@ fun LobbyScreen(
         verticalArrangement = Arrangement.spacedBy(ITEM_SPACING, Alignment.CenterVertically),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text(stringResource(R.string.login_logged_in_as, username), style = MaterialTheme.typography.titleMedium)
+        Text(
+            stringResource(R.string.login_logged_in_as, username),
+            style = MaterialTheme.typography.titleMedium,
+            modifier = Modifier.testTag(TestTags.LOBBY_USERNAME),
+        )
         SearchControl(state.search, onAction)
     }
 }
@@ -47,14 +52,17 @@ private fun SearchControl(
     when (search) {
         is SearchState.Idle -> {
             search.error?.let { Text(searchErrorText(it), color = MaterialTheme.colorScheme.error) }
-            Button(onClick = { onAction(UserAction.FindBattle(BattleFormat.Gen9RandomBattle)) }) {
+            Button(
+                onClick = { onAction(UserAction.FindBattle(BattleFormat.Gen9RandomBattle)) },
+                modifier = Modifier.testTag(TestTags.LOBBY_FIND_BATTLE),
+            ) {
                 Text(stringResource(R.string.lobby_find_random_battle))
             }
         }
         is SearchState.Requested, is SearchState.Searching -> {
             CircularProgressIndicator()
-            Text(stringResource(R.string.lobby_searching))
-            TextButton(onClick = { onAction(UserAction.CancelSearch) }) {
+            Text(stringResource(R.string.lobby_searching), modifier = Modifier.testTag(TestTags.LOBBY_SEARCHING))
+            TextButton(onClick = { onAction(UserAction.CancelSearch) }, modifier = Modifier.testTag(TestTags.LOBBY_CANCEL_SEARCH)) {
                 Text(stringResource(R.string.lobby_cancel_search))
             }
         }

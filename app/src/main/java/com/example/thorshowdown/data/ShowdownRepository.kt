@@ -2,28 +2,48 @@ package com.example.thorshowdown.data
 
 import com.example.thorshowdown.data.local.LocalDataSource
 import com.example.thorshowdown.data.local.SavedLogin
+import com.example.thorshowdown.data.web.WebSession
 import com.example.thorshowdown.showdown.LoginFailure
 import com.example.thorshowdown.showdown.LoginResult
 import com.example.thorshowdown.showdown.ShowdownClient
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import java.io.IOException
 import java.util.logging.Logger
 
-/** Placeholder for parsed battle state. */
-data class BattleState(
-    val log: List<String> = emptyList(),
-)
-
-/** App-scoped single source of truth. Combines the Showdown client and local data. */
+/**
+ * App-scoped single source of truth. Combines the Showdown client and local data.
+ * Collects the client's events in [scope] from construction, so none are missed before `connect()`.
+ */
 class ShowdownRepository(
     private val client: ShowdownClient,
     private val local: LocalDataSource,
+    private val webSession: WebSession,
+    scope: CoroutineScope,
 ) {
-    private val _battleState = MutableStateFlow(BattleState())
-    val battleState: StateFlow<BattleState> = _battleState.asStateFlow()
+    private val sessionManager = SessionManager(client)
+
+    /** Every battle the user is in, and which one is shown. */
+    val sessions: StateFlow<SessionsState> = sessionManager.state
+
+    private val matchmaker = Matchmaker(client, scope)
+
+    /** The ladder search, if any. */
+    val searchState: StateFlow<SearchState> = matchmaker.state
+
+    init {
+        scope.launch(start = CoroutineStart.UNDISPATCHED) {
+            client.events.collect { event ->
+                matchmaker.handle(event)
+                sessionManager.handle(event)
+            }
+        }
+    }
 
     private val _loginState = MutableStateFlow<LoginState>(LoginState.Loading)
     val loginState: StateFlow<LoginState> = _loginState.asStateFlow()
@@ -51,7 +71,7 @@ class ShowdownRepository(
         try {
             _loginState.value = LoginState.LoggingIn(username)
             when (val result = connectAndLogin(username, password)) {
-                is LoginResult.Success -> onLoggedIn(SavedLogin(username, password), result.username)
+                is LoginResult.Success -> onLoggedIn(SavedLogin(username, password), result.username, result.sid)
                 is LoginResult.Failure -> onLoginFailed(LoginError(username, result.reason, result.message))
             }
         } finally {
@@ -87,19 +107,55 @@ class ShowdownRepository(
         _loginState.value = LoginState.LoggedOut(saved?.username.takeUnless { savedIsRefused }, error)
     }
 
+    /** Signs the WebView in before reporting the login, so "logged in" means the top screen is ready too. */
     private suspend fun onLoggedIn(
         login: SavedLogin,
         displayName: String,
+        sid: String?,
     ) {
         local.saveLogin(login)
+        if (sid != null) webSession.signIn(sid) else logger.warning { "Login gave no sid; the top screen will be a spectator" }
         _loginState.value = LoginState.LoggedIn(displayName)
     }
 
-    /** Searches the ladder for [formatId] without a team (random formats). */
-    suspend fun startSearch(formatId: String) {
-        client.useTeam(packedTeam = null)
-        client.search(formatId)
+    /** Uses move [slot] (1-based) in battle [roomId] if a choice is awaited. */
+    suspend fun chooseMove(
+        roomId: String,
+        slot: Int,
+        terastallize: Boolean,
+    ) = sessionManager.chooseMove(roomId, slot, terastallize)
+
+    /** Switches to party [slot] (1-based) in battle [roomId] if a choice is awaited. */
+    suspend fun switchTo(
+        roomId: String,
+        slot: Int,
+    ) = sessionManager.switchTo(roomId, slot)
+
+    /** Turns on the battle timer in [roomId]. */
+    suspend fun startTimer(roomId: String) = sessionManager.startTimer(roomId)
+
+    /** Takes back the choice sent in battle [roomId], if it can still be taken back. */
+    suspend fun undo(roomId: String) = sessionManager.undo(roomId)
+
+    suspend fun forfeit(roomId: String) = sessionManager.forfeit(roomId)
+
+    /** Leaves battle [roomId], forfeiting it first if it isn't over. */
+    suspend fun leave(roomId: String) = sessionManager.leave(roomId)
+
+    /** Shows battle [roomId]; doesn't leave or forfeit any other. */
+    fun selectRoom(roomId: String) = sessionManager.selectRoom(roomId)
+
+    /** Searches the ladder for [format]. Ignored unless logged in, since Showdown refuses guests. */
+    suspend fun startSearch(format: BattleFormat) {
+        if (_loginState.value !is LoginState.LoggedIn) {
+            logger.warning { "Ignoring search for ${format.id}: not logged in" }
+            return
+        }
+        matchmaker.start(format)
     }
+
+    /** Stops the ladder search, if any. */
+    suspend fun cancelSearch() = matchmaker.cancel()
 
     private companion object {
         val logger: Logger = Logger.getLogger(ShowdownRepository::class.java.name)

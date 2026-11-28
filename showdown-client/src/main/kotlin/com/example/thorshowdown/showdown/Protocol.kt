@@ -11,6 +11,9 @@ internal object Protocol {
     /** Separates a command from its arguments, and the words of a choice. */
     const val ARG_SEPARATOR = " "
 
+    /** Argument of `/timer` that turns the battle timer on. */
+    const val TIMER_ON = "on"
+
     /** Outbound slash commands. */
     object Command {
         const val TRN = "/trn"
@@ -21,6 +24,7 @@ internal object Protocol {
         const val LEAVE = "/leave"
         const val CHOOSE = "/choose"
         const val FORFEIT = "/forfeit"
+        const val TIMER = "/timer"
     }
 
     /** Words used inside a `/choose` command. */

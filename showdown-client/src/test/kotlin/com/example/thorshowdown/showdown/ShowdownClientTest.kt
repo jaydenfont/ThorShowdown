@@ -105,6 +105,17 @@ class ShowdownClientTest {
         }
 
     @Test
+    fun ShowdownClient_StartTimer_SendsTimerOnInBattleRoom() =
+        runTest(UnconfinedTestDispatcher()) {
+            val client = newClient()
+            client.connect()
+
+            client.startTimer(BATTLE_ROOM)
+
+            assertEquals(listOf("$BATTLE_ROOM|/timer on"), server.sent)
+        }
+
+    @Test
     fun ShowdownClient_CommandBeforeConnect_ThrowsNotConnected() =
         runTest(UnconfinedTestDispatcher()) {
             val client = newClient()

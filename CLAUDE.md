@@ -5,6 +5,9 @@ Kotlin + Jetpack Compose. Modules:
 - `app/`: Android app (UI, ViewModel, Repository, SessionManager).
 - `showdown-client/`: pure-Kotlin JVM library for the Showdown protocol
   (see `context/design/showdown_client.md`).
+- `tools/`: JVM build tools, run by hand (not part of the app). `generateMoveData` regenerates
+  `app/src/main/assets/data/moves.json` from the Showdown server repo (MIT).
+
 
 ## Context docs (read first)
 - `context/README.md`: index of the context folder and its conventions.
@@ -39,6 +42,12 @@ Kotlin + Jetpack Compose. Modules:
 - Instrumented tests (Keystore, DataStore; manual, needs the emulator, never in CI). Set
   `ANDROID_SERIAL=emulator-5554` first so they don't run on a plugged-in Thor:
   `.\gradlew.bat :app:connectedDebugAndroidTest`
+- Regenerate bundled move data (manual, needs network): `.\gradlew.bat :tools:generateMoveData`
+- Workflow tests (manual, emulator only, never in CI): `.\gradlew.bat :tools:qaRun`
+  (one scenario: `-Pscenarios=Login`). Runs `qa/scenarios/*` against a fake server, captures
+  both screens, video and logcat, and writes `qa-runs/<timestamp>/report.html`. Re-render after a
+  review: `.\gradlew.bat :tools:qaReport -PrunDir=qa-runs/<timestamp>`.
+  The `qa` skill (`.claude/skills/qa`) runs, reviews and publishes a run. Design: `context/design/workflow_tests.md`.
 - Lint (whole project, must pass before merging): `.\gradlew.bat ktlintCheck`
   (auto-fix: `.\gradlew.bat ktlintFormat`)
 - If Gradle can't find Java, set `JAVA_HOME=C:\Program Files\Android\Android Studio\jbr`.

@@ -1,0 +1,44 @@
+/*
+ * Injected into the Showdown web client by BattleWebView: shows only the battle, view only.
+ * Selectors come from the #4 spike (context/research/webview_spike.md).
+ */
+
+/* Showdown's own controls and chrome: the app's bottom screen makes every choice. */
+#header,
+.tabbar,
+.battle-controls,
+.battle-chat-toggle,
+.battle-userlist,
+.battle-log,
+.battle-log-add,
+.chat-log-add,
+.foehint,
+#adBanner,
+/* Server popups: the app shows them itself (#11), so they'd appear twice. */
+.ps-overlay,
+.ps-popup {
+    display: none !important;
+}
+
+html,
+body {
+    background: #000 !important;
+    overflow: hidden !important;
+}
+
+.ps-room {
+    position: fixed !important;
+    inset: 0 !important;
+    background: #000 !important;
+    overflow: hidden !important;
+}
+
+/* The battle is a fixed 640x360 box; battle.js sets the scale and offset that fit the screen. */
+.ps-room .battle {
+    position: absolute !important;
+    top: 0 !important;
+    left: var(--thor-left, 0) !important;
+    margin: 0 !important;
+    transform-origin: 0 0 !important;
+    transform: scale(var(--thor-scale, 1)) !important;
+}

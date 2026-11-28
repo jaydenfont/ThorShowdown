@@ -5,11 +5,17 @@ import com.example.thorshowdown.data.ShowdownRepository
 import com.example.thorshowdown.data.local.LocalDataSource
 import com.example.thorshowdown.data.local.SavedLogin
 import com.example.thorshowdown.fakes.FakeCredentialStore
+import com.example.thorshowdown.fakes.FakeMoveDex
 import com.example.thorshowdown.fakes.FakeShowdownClient
+import com.example.thorshowdown.fakes.FakeWebSession
 import com.example.thorshowdown.fakes.MainDispatcherRule
 import com.example.thorshowdown.showdown.LoginFailure
 import com.example.thorshowdown.showdown.LoginResult
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Rule
@@ -21,6 +27,14 @@ class GameViewModelLoginTest {
 
     private val client = FakeShowdownClient()
     private val credentials = FakeCredentialStore()
+
+    /** Where the repository collects client events; cancelled after each test. */
+    private val eventScope = CoroutineScope(UnconfinedTestDispatcher())
+
+    @After
+    fun cancelEventCollection() {
+        eventScope.cancel()
+    }
 
     @Test
     fun GameViewModel_StartWithNothingSaved_ShowsEmptyForm() {
@@ -126,7 +140,8 @@ class GameViewModelLoginTest {
         )
     }
 
-    private fun newViewModel(): GameViewModel = GameViewModel(ShowdownRepository(client, LocalDataSource(credentials)))
+    private fun newViewModel(): GameViewModel =
+        GameViewModel(ShowdownRepository(client, LocalDataSource(credentials), FakeWebSession(), eventScope), FakeMoveDex())
 
     private companion object {
         val SAVED_LOGIN = SavedLogin(FakeShowdownClient.USERNAME, "hunter2")

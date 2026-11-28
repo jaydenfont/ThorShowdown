@@ -40,6 +40,8 @@ internal object Commands {
 
     fun forfeit(roomId: String): String = inRoom(roomId, Protocol.Command.FORFEIT)
 
+    fun startTimer(roomId: String): String = inRoom(roomId, command(Protocol.Command.TIMER, Protocol.TIMER_ON))
+
     private fun command(
         name: String,
         argument: String,

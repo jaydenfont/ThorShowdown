@@ -1,0 +1,2 @@
+>battle-gen9randombattle-qa1
+|deinit

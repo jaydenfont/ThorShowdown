@@ -168,6 +168,7 @@ interface ShowdownClient {
     suspend fun cancelSearch()
     suspend fun choose(roomId: String, choice: Choice, rqid: Int?)
     suspend fun forfeit(roomId: String)
+    suspend fun startTimer(roomId: String)              // "roomId|/timer on"; confirmed by Inactive
     suspend fun join(roomId: String)
     suspend fun leave(roomId: String)
 }

@@ -1,0 +1,5 @@
+>battle-gen9randombattle-qa1
+|
+|-message|qa-player forfeited.
+|
+|win|qa-opponent
